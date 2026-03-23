@@ -1,0 +1,8 @@
+# Exclude historical benchmark results (can be large)
+history/
+
+# Keep latest results for quick reference
+!latest.json
+
+# Keep baseline for regression detection
+!baseline.json

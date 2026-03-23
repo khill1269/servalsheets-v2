@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ServalSheets Complete Probe Report — Live API Testing</title>
+<style>
+  :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --dim: #8b949e; --green: #3fb950; --red: #f85149; --yellow: #d29922; --blue: #58a6ff; --purple: #bc8cff; --orange: #d18616; --cyan: #39d2c0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 24px; }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 28px; margin-bottom: 8px; background: linear-gradient(90deg, var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  h2 { font-size: 20px; color: var(--blue); margin: 32px 0 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  h3 { font-size: 16px; color: var(--cyan); margin: 20px 0 10px; }
+  .subtitle { color: var(--dim); font-size: 14px; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .stat-card .label { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-card .value { font-size: 32px; font-weight: 700; margin: 4px 0; }
+  .stat-card .detail { color: var(--dim); font-size: 13px; }
+  .pass { color: var(--green); } .fail { color: var(--red); } .timeout { color: var(--yellow); } .skip { color: var(--dim); } .blocked { color: var(--orange); } .warn { color: var(--orange); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-pass { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-fail { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge-timeout { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .badge-skip { background: rgba(139,148,158,0.15); color: var(--dim); }
+  .badge-blocked { background: rgba(209,134,22,0.15); color: var(--orange); }
+  .badge-warn { background: rgba(209,134,22,0.15); color: var(--orange); }
+  .badge-fixed { background: rgba(57,210,192,0.15); color: var(--cyan); }
+  .badge-new { background: rgba(188,140,255,0.15); color: var(--purple); }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+  th { background: #1c2333; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 12px 16px; text-align: left; }
+  td { padding: 10px 16px; border-top: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  tr:hover td { background: rgba(88,166,255,0.04); }
+  code { background: rgba(110,118,129,0.1); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+  .note { background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.2); border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 13px; }
+  .warn-note { background: rgba(210,153,34,0.08); border: 1px solid rgba(210,153,34,0.2); border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 13px; }
+  .error-note { background: rgba(248,81,73,0.08); border: 1px solid rgba(248,81,73,0.2); border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 13px; }
+  .section { margin-bottom: 40px; }
+  .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin: 8px 0; }
+  .progress-fill { height: 100%; border-radius: 4px; }
+  details { margin: 8px 0; }
+  summary { cursor: pointer; color: var(--blue); font-size: 13px; padding: 4px 0; }
+  summary:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>ServalSheets Complete Probe Report</h1>
+<p class="subtitle">Live API testing across 21 tools &bull; 68 actions probed &bull; 2026-03-22 &bull; Spreadsheet: <code>169QxkGi...heGik</code></p>
+
+<!-- ============ SUMMARY STATS ============ -->
+<div class="grid">
+  <div class="stat-card">
+    <div class="label">Actions Probed</div>
+    <div class="value pass">68</div>
+    <div class="detail">across 21 of 25 tools</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Passed</div>
+    <div class="value pass">52</div>
+    <div class="detail">76.5% clean pass rate</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Known Bugs (Pre-fix)</div>
+    <div class="value" style="color: var(--cyan);">10</div>
+    <div class="detail">All 17 fixed in source, server needs restart</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">New Bugs Found</div>
+    <div class="value fail">3</div>
+    <div class="detail">BUG-18, BUG-19, BUG-20</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Config/Env Skips</div>
+    <div class="value skip">3</div>
+    <div class="detail">Redis, Federation, OAuth scopes</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Timeouts</div>
+    <div class="value timeout">2</div>
+    <div class="detail">timeline, version_list_revisions</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Total Source Fixes</div>
+    <div class="value" style="color: var(--cyan);">17</div>
+    <div class="detail">5 sprints, 13 files, 2742/2742 tests pass</div>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Context:</strong> The MCP server is managed by Cowork SDK and cannot be restarted from within this sandbox. It runs pre-fix compiled code. All 17 original bugs are fixed in TypeScript source and compiled to <code>dist/</code>, verified by 2742/2742 passing tests. Actions that fail due to pre-fix bugs are marked <span class="badge badge-fixed">FIXED IN SOURCE</span>.
+</div>
+
+<!-- ============ NEW BUGS ============ -->
+<h2>New Bugs Discovered This Session</h2>
+
+<table>
+  <tr><th>Bug</th><th>Tool.Action</th><th>Severity</th><th>Description</th><th>Root Cause</th></tr>
+  <tr>
+    <td><span class="badge badge-new">BUG-18</span></td>
+    <td><code>data.auto_fill</code></td>
+    <td><span class="badge badge-fail">HIGH</span></td>
+    <td><strong>auto_fill ignores safety.dryRun flag</strong> &mdash; writes data even when <code>dryRun: true</code>. Verified by reading cells D6:D10 after call: values overwritten from 190,185,180,170,160 to 240,220,210,200,240.</td>
+    <td>Handler likely doesn't check <code>safety.dryRun</code> before executing batchUpdate. The auto_fill handler in <code>data.ts</code> needs a dryRun guard.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-new">BUG-19</span></td>
+    <td><code>compute.custom_function</code></td>
+    <td><span class="badge badge-warn">MEDIUM</span></td>
+    <td><strong>custom_function returns "Cannot evaluate"</strong> for all rows with expression <code>x * 1.1</code> on numeric data. All 8 cells return "Cannot evaluate: x * 1.1" instead of computed values.</td>
+    <td>Expression evaluator doesn't substitute <code>x</code> with cell values. May need different variable syntax or the evaluator doesn't handle parameterized expressions.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-new">BUG-20</span></td>
+    <td><code>compute.pandas_profile</code></td>
+    <td><span class="badge badge-timeout">LOW</span></td>
+    <td><strong>Schema rejects <code>columns</code> parameter</strong> &mdash; "Unrecognized key: columns". The tool description mentions column profiling but the schema doesn't accept a columns filter param.</td>
+    <td>Schema in <code>compute.ts</code> may be missing the <code>columns</code> field for pandas_profile action. Also blocked by BUG-9 on current server.</td>
+  </tr>
+</table>
+
+<div class="error-note">
+  <strong>BUG-18 is data-destructive:</strong> <code>auto_fill</code> with <code>dryRun: true</code> overwrote 5 cells in the live spreadsheet. This is a safety rail failure &mdash; the same class of issue as BUG-1 through BUG-17 but potentially more dangerous since it silently mutates data when the caller explicitly requested a dry run.
+</div>
+
+<!-- ============ COMPLETE RESULTS BY TOOL ============ -->
+<h2>Complete Probe Results by Tool</h2>
+
+<!-- sheets_core -->
+<h3>sheets_core (21 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>get</code></td><td><span class="badge badge-blocked">KNOWN BUG</span> <span class="badge badge-fixed">FIXED IN SOURCE</span></td><td>BUG-1: <code>index</code> missing from SheetInfoSchema output. Fixed in <code>shared.ts</code>.</td></tr>
+</table>
+
+<!-- sheets_data -->
+<h3>sheets_data (25 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>read</code></td><td><span class="badge badge-pass">PASS</span></td><td>Reads correctly with RangeInputSchema <code>{a1: "..."}</code>.</td></tr>
+  <tr><td><code>batch_read</code></td><td><span class="badge badge-pass">PASS</span></td><td>Multi-range read works.</td></tr>
+  <tr><td><code>find_replace</code></td><td><span class="badge badge-pass">PASS</span></td><td>Preview mode finds matches correctly.</td></tr>
+  <tr><td><code>get_note</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns empty string for cells without notes.</td></tr>
+  <tr><td><code>get_merges</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns empty array (no merges in test sheet).</td></tr>
+  <tr><td><code>detect_spill_ranges</code></td><td><span class="badge badge-pass">PASS</span></td><td>No spill ranges detected (expected).</td></tr>
+  <tr><td><code>auto_fill</code></td><td><span class="badge badge-fail">BUG-18</span></td><td><strong>Ignores dryRun</strong> &mdash; wrote 5 cells despite <code>safety.dryRun: true</code>.</td></tr>
+  <tr><td><code>cross_read</code></td><td><span class="badge badge-pass">PASS</span></td><td>Graceful partial success: reads valid sources, reports errors for missing sheets.</td></tr>
+  <tr><td><code>smart_fill</code></td><td><span class="badge badge-pass">PASS</span></td><td>Correctly detects "no pattern" and returns 0 cells updated.</td></tr>
+  <tr><td><code>copy_paste</code></td><td><span class="badge badge-warn">SCHEMA</span></td><td>Schema expects <code>source</code> as RangeInputSchema (not nested object) and <code>destination</code> as string. Non-obvious param shapes.</td></tr>
+</table>
+
+<!-- sheets_compute -->
+<h3>sheets_compute (16 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>evaluate</code></td><td><span class="badge badge-pass">PASS</span></td><td>Formula evaluation works.</td></tr>
+  <tr><td><code>aggregate</code></td><td><span class="badge badge-pass">PASS</span></td><td>SUM, AVERAGE, COUNT, MIN, MAX all return correct values.</td></tr>
+  <tr><td><code>statistical</code></td><td><span class="badge badge-pass">PASS</span></td><td>Full stats (mean, median, stdev, skewness, kurtosis).</td></tr>
+  <tr><td><code>explain_formula</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns formula breakdown.</td></tr>
+  <tr><td><code>forecast</code></td><td><span class="badge badge-pass">PASS</span></td><td>Linear trend with 3 forecast periods. Detects decreasing trend.</td></tr>
+  <tr><td><code>matrix_op</code></td><td><span class="badge badge-pass">PASS</span></td><td>Transpose operation works.</td></tr>
+  <tr><td><code>batch_compute</code></td><td><span class="badge badge-pass">PASS</span></td><td>Works with correct schema: <code>{id, type, params}</code>. Sum=2905, avg=161.4.</td></tr>
+  <tr><td><code>custom_function</code></td><td><span class="badge badge-fail">BUG-19</span></td><td>"Cannot evaluate: x * 1.1" for all rows. Expression evaluator doesn't substitute variables.</td></tr>
+  <tr><td><code>regression</code></td><td><span class="badge badge-warn">DATA</span></td><td>Column "Revenue" not in test data. Works with correct column names.</td></tr>
+  <tr><td><code>pivot_compute</code></td><td><span class="badge badge-warn">DATA</span></td><td>Same &mdash; column name mismatch with test data.</td></tr>
+  <tr><td><code>python_eval</code></td><td><span class="badge badge-blocked">KNOWN BUG</span> <span class="badge badge-fixed">FIXED IN SOURCE</span></td><td>BUG-9: <code>compile()</code> blocked in Pyodide sandbox. Fixed in <code>python-worker.ts</code>.</td></tr>
+  <tr><td><code>sql_query</code></td><td><span class="badge badge-blocked">KNOWN BUG</span> <span class="badge badge-fixed">FIXED IN SOURCE</span></td><td>BUG-10: <code>read_json_auto()</code> treats data as file path. Fixed in <code>duckdb-worker.ts</code>.</td></tr>
+  <tr><td><code>sql_join</code></td><td><span class="badge badge-blocked">KNOWN BUG</span> <span class="badge badge-fixed">FIXED IN SOURCE</span></td><td>Same root cause as BUG-10.</td></tr>
+  <tr><td><code>pandas_profile</code></td><td><span class="badge badge-fail">BUG-20</span> + <span class="badge badge-blocked">BUG-9</span></td><td>Schema rejects <code>columns</code> param. Also blocked by compile() issue.</td></tr>
+  <tr><td><code>sklearn_model</code></td><td><span class="badge badge-blocked">KNOWN BUG</span> <span class="badge badge-fixed">FIXED IN SOURCE</span></td><td>BUG-9: compile() blocked in Pyodide.</td></tr>
+  <tr><td><code>matplotlib_chart</code></td><td><span class="badge badge-blocked">KNOWN BUG</span> <span class="badge badge-fixed">FIXED IN SOURCE</span></td><td>BUG-9: compile() blocked in Pyodide.</td></tr>
+</table>
+
+<!-- sheets_analyze -->
+<h3>sheets_analyze (23 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>scout</code></td><td><span class="badge badge-pass">PASS</span></td><td>Quick scan returns structure overview.</td></tr>
+  <tr><td><code>drill_down</code></td><td><span class="badge badge-pass">PASS</span></td><td>Works with sheet target type.</td></tr>
+  <tr><td><code>execute_plan</code></td><td><span class="badge badge-blocked">KNOWN BUG</span> <span class="badge badge-fixed">FIXED IN SOURCE</span></td><td>BUG-16: Required fields too strict. Fixed &mdash; most fields now optional.</td></tr>
+</table>
+
+<!-- sheets_format -->
+<h3>sheets_format (25 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>auto_fit</code></td><td><span class="badge badge-pass">PASS</span></td><td>Column auto-resize works.</td></tr>
+  <tr><td><code>generate_conditional_format</code></td><td><span class="badge badge-blocked">KNOWN BUG</span> <span class="badge badge-fixed">FIXED IN SOURCE</span></td><td>BUG-7: Range resolution failed. Fixed in <code>range-resolver.ts</code> + <code>conditional.ts</code>.</td></tr>
+</table>
+
+<!-- sheets_dimensions -->
+<h3>sheets_dimensions (30 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>freeze</code></td><td><span class="badge badge-pass">PASS</span></td><td>Freeze header row works.</td></tr>
+</table>
+
+<!-- sheets_advanced -->
+<h3>sheets_advanced (31 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>list_named_ranges</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns named ranges.</td></tr>
+</table>
+
+<!-- sheets_visualize -->
+<h3>sheets_visualize (18 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>chart_list</code></td><td><span class="badge badge-pass">PASS</span></td><td>Lists existing charts.</td></tr>
+</table>
+
+<!-- sheets_fix -->
+<h3>sheets_fix (6 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>detect_anomalies</code></td><td><span class="badge badge-pass">PASS</span></td><td>IQR method works.</td></tr>
+  <tr><td><code>clean</code></td><td><span class="badge badge-pass">PASS</span></td><td>Preview mode: 0 cells need cleaning (data is clean).</td></tr>
+  <tr><td><code>suggest_cleaning</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns data profile with column stats. 0 recommendations on clean data.</td></tr>
+  <tr><td><code>fill_missing</code></td><td><span class="badge badge-pass">PASS</span></td><td>Forward-fill preview with dryRun: 0 empty cells.</td></tr>
+  <tr><td><code>standardize_formats</code></td><td><span class="badge badge-pass">PASS</span></td><td>Needs enum values (e.g. <code>iso_date</code>) not format strings. Clear error message.</td></tr>
+</table>
+
+<!-- sheets_dependencies -->
+<h3>sheets_dependencies (10 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>get_stats</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns graph metrics.</td></tr>
+  <tr><td><code>build</code></td><td><span class="badge badge-pass">PASS</span></td><td>685 cells, 709 dependencies, 342 formulas.</td></tr>
+  <tr><td><code>detect_cycles</code></td><td><span class="badge badge-pass">PASS</span></td><td>No circular dependencies found.</td></tr>
+  <tr><td><code>analyze_impact</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns dependency chain for target cell.</td></tr>
+  <tr><td><code>model_scenario</code></td><td><span class="badge badge-pass">PASS</span></td><td>Scenario modeling with cascade effects.</td></tr>
+  <tr><td><code>export_dot</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns 92K+ character DOT graph.</td></tr>
+  <tr><td><code>get_dependencies</code></td><td><span class="badge badge-pass">PASS</span></td><td>Lists formula dependencies.</td></tr>
+  <tr><td><code>get_dependents</code></td><td><span class="badge badge-pass">PASS</span></td><td>Lists cells that depend on target.</td></tr>
+</table>
+
+<!-- sheets_history -->
+<h3>sheets_history (10 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>list</code></td><td><span class="badge badge-pass">PASS</span></td><td>Operation history list.</td></tr>
+  <tr><td><code>stats</code></td><td><span class="badge badge-pass">PASS</span></td><td>0 operations tracked (fresh session).</td></tr>
+  <tr><td><code>timeline</code></td><td><span class="badge badge-timeout">TIMEOUT</span></td><td>60s timeout. Drive API revision pagination likely slow for large spreadsheets.</td></tr>
+</table>
+
+<!-- sheets_session -->
+<h3>sheets_session (31 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>set_active</code></td><td><span class="badge badge-pass">PASS</span></td><td>Activates spreadsheet for session tracking.</td></tr>
+  <tr><td><code>get_context</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns full session context.</td></tr>
+  <tr><td><code>get_preferences</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns confirmation level, safety defaults, formatting prefs.</td></tr>
+  <tr><td><code>get_history</code></td><td><span class="badge badge-pass">PASS</span></td><td>Session operation history.</td></tr>
+  <tr><td><code>record_operation</code></td><td><span class="badge badge-pass">PASS</span></td><td>Records op with unique ID.</td></tr>
+  <tr><td><code>get_last_operation</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns last recorded operation.</td></tr>
+  <tr><td><code>find_by_reference</code></td><td><span class="badge badge-pass">PASS</span></td><td>Fuzzy matching with confidence scores.</td></tr>
+  <tr><td><code>get_profile</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns null (no profile set).</td></tr>
+  <tr><td><code>get_top_formulas</code></td><td><span class="badge badge-pass">PASS</span></td><td>Empty (no formulas recorded this session).</td></tr>
+  <tr><td><code>get_alerts</code></td><td><span class="badge badge-pass">PASS</span></td><td>No alerts.</td></tr>
+  <tr><td><code>list_checkpoints</code></td><td><span class="badge badge-pass">PASS</span></td><td>Disabled (needs ENABLE_CHECKPOINTS=true). Clean messaging.</td></tr>
+  <tr><td><code>reset</code></td><td><span class="badge badge-pass">PASS</span></td><td>Session context cleared successfully.</td></tr>
+</table>
+
+<!-- sheets_collaborate -->
+<h3>sheets_collaborate (41 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>comment_list</code></td><td><span class="badge badge-pass">PASS</span></td><td>Lists comments on spreadsheet.</td></tr>
+  <tr><td><code>comment_add</code></td><td><span class="badge badge-pass">PASS</span></td><td>Created comment with anchor. Returns comment ID.</td></tr>
+  <tr><td><code>comment_get</code></td><td><span class="badge badge-pass">PASS</span></td><td>Retrieves comment by ID.</td></tr>
+  <tr><td><code>comment_resolve</code></td><td><span class="badge badge-pass">PASS</span></td><td>Resolved comment successfully.</td></tr>
+  <tr><td><code>share_list</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns permission list (owner, reader, anyoneWithLink).</td></tr>
+  <tr><td><code>share_get_link</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns sharing URL.</td></tr>
+  <tr><td><code>label_list</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns empty label list.</td></tr>
+  <tr><td><code>version_list_revisions</code></td><td><span class="badge badge-timeout">TIMEOUT</span></td><td>Request timed out. Drive API revision listing may be slow.</td></tr>
+</table>
+
+<!-- sheets_appsscript -->
+<h3>sheets_appsscript (19 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>get</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns script project metadata.</td></tr>
+  <tr><td><code>get_content</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns Code.gs + appsscript.json file contents.</td></tr>
+  <tr><td><code>list_versions</code></td><td><span class="badge badge-pass">PASS</span></td><td>Version 1: "Showcase v1".</td></tr>
+  <tr><td><code>list_deployments</code></td><td><span class="badge badge-pass">PASS</span></td><td>2 deployments including WEB_APP.</td></tr>
+  <tr><td><code>list_processes</code></td><td><span class="badge badge-blocked">KNOWN BUG</span> <span class="badge badge-fixed">FIXED IN SOURCE</span></td><td>BUG-5: Uses query param rejected by Google API. Fixed to project-scoped endpoint.</td></tr>
+  <tr><td><code>get_metrics</code></td><td><span class="badge badge-skip">SCOPES</span></td><td>Insufficient OAuth scopes. Not a code bug.</td></tr>
+  <tr><td><code>list_triggers</code></td><td><span class="badge badge-skip">NOT IMPL</span></td><td>By design &mdash; requires in-script ScriptApp APIs.</td></tr>
+</table>
+
+<!-- sheets_bigquery -->
+<h3>sheets_bigquery (17 actions)</h3>
+<table>
+  <tr><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>list_connections</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns empty (no BigQuery connections).</td></tr>
+</table>
+
+<!-- sheets_agent, transaction, templates, confirm, connectors, quality -->
+<h3>Other Tools</h3>
+<table>
+  <tr><th>Tool</th><th>Action</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><code>sheets_agent</code></td><td><code>list_plans</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns empty plan list.</td></tr>
+  <tr><td><code>sheets_transaction</code></td><td><code>list</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns empty transaction list.</td></tr>
+  <tr><td><code>sheets_templates</code></td><td><code>list</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns template list.</td></tr>
+  <tr><td><code>sheets_confirm</code></td><td><code>get_stats</code></td><td><span class="badge badge-pass">PASS</span></td><td>Confirmation stats.</td></tr>
+  <tr><td><code>sheets_connectors</code></td><td><code>list_connectors</code></td><td><span class="badge badge-pass">PASS</span></td><td>Returns connector registry.</td></tr>
+  <tr><td><code>sheets_quality</code></td><td><code>validate</code></td><td><span class="badge badge-warn">SCHEMA</span></td><td>Requires <code>value</code> field that shouldn't be needed for basic validation.</td></tr>
+  <tr><td><code>sheets_webhook</code></td><td><code>get_stats</code></td><td><span class="badge badge-skip">CONFIG</span></td><td>Redis not configured.</td></tr>
+  <tr><td><code>sheets_federation</code></td><td><code>list_servers</code></td><td><span class="badge badge-skip">CONFIG</span></td><td>Federation not enabled.</td></tr>
+</table>
+
+<!-- ============ BUG FIX SUMMARY ============ -->
+<h2>Complete Bug Fix Summary (17 Original + 3 New)</h2>
+
+<h3>Sprint 1: A1 Range Resolution (4 bugs)</h3>
+<table>
+  <tr><th>Bug</th><th>File</th><th>Fix</th><th>Status</th></tr>
+  <tr><td>BUG-2, 6, 14</td><td><code>core/range-resolver.ts</code></td><td>gridRangeToA1() handles missing startRowIndex/startColumnIndex</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-7</td><td><code>handlers/format-actions/conditional.ts</code></td><td>sheetId resolution for conditional formatting</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+</table>
+
+<h3>Sprint 2: Schema Mismatches (4 bugs)</h3>
+<table>
+  <tr><th>Bug</th><th>File</th><th>Fix</th><th>Status</th></tr>
+  <tr><td>BUG-1</td><td><code>schemas/shared.ts</code></td><td>Added <code>index</code> to SheetInfoSchema</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-8</td><td><code>schemas/shared.ts</code></td><td>Made <code>fixableVia</code> optional in error responses</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-12</td><td><code>handlers/compute.ts</code></td><td>Percentiles default to <code>[25, 50, 75]</code> when omitted</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-15</td><td><code>schemas/agent.ts</code></td><td>stepId accepts string or number union type</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+</table>
+
+<h3>Sprint 3: Google API Parameters (3 bugs)</h3>
+<table>
+  <tr><th>Bug</th><th>File</th><th>Fix</th><th>Status</th></tr>
+  <tr><td>BUG-4</td><td><code>handlers/visualize-actions/charts.ts</code></td><td>chart_resize includes position fields in field mask</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-5</td><td><code>handlers/appsscript.ts</code></td><td>list_processes uses project-scoped endpoint</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-13</td><td><code>handlers/advanced-actions/banding.ts</code></td><td>Empty fields validation for banding</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+</table>
+
+<h3>Sprint 4: Schema/Discriminator (4 bugs)</h3>
+<table>
+  <tr><th>Bug</th><th>File</th><th>Fix</th><th>Status</th></tr>
+  <tr><td>BUG-3</td><td><code>schemas/data.ts</code></td><td>smart_fill normalizer: <code>range</code>&rarr;<code>sourceRange</code>, <code>targetRange</code>&rarr;<code>fillRange</code></td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-11</td><td><code>schemas/quality.ts</code></td><td>analyze_impact: <code>tool</code> and <code>action</code> now required with <code>.min(1)</code></td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-16</td><td><code>schemas/analyze.ts</code></td><td>execute_plan: most AnalysisPlanStep fields now optional</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-17</td><td><code>schemas/analyze.ts</code></td><td>drill_down: improved target discriminated union description</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+</table>
+
+<h3>Sprint 5: Compute Engines (2 bugs)</h3>
+<table>
+  <tr><th>Bug</th><th>File</th><th>Fix</th><th>Status</th></tr>
+  <tr><td>BUG-9</td><td><code>services/python-worker.ts</code></td><td>Removed <code>compile()</code> from blocked builtins. Pyodide needs it for list comprehensions, f-strings.</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+  <tr><td>BUG-10</td><td><code>services/duckdb-worker.ts</code></td><td>Replaced <code>read_json_auto()</code> with CREATE TABLE + batched INSERT VALUES.</td><td><span class="badge badge-fixed">FIXED</span></td></tr>
+</table>
+
+<h3>New Bugs (This Session)</h3>
+<table>
+  <tr><th>Bug</th><th>File</th><th>Fix Needed</th><th>Status</th></tr>
+  <tr><td>BUG-18</td><td><code>handlers/data.ts</code> (auto_fill)</td><td>Add <code>safety.dryRun</code> guard before executing fill batchUpdate</td><td><span class="badge badge-fail">OPEN</span></td></tr>
+  <tr><td>BUG-19</td><td><code>handlers/compute.ts</code> (custom_function)</td><td>Expression evaluator needs to substitute <code>x</code> with cell values</td><td><span class="badge badge-fail">OPEN</span></td></tr>
+  <tr><td>BUG-20</td><td><code>schemas/compute.ts</code> (pandas_profile)</td><td>Add optional <code>columns</code> field to schema</td><td><span class="badge badge-fail">OPEN</span></td></tr>
+</table>
+
+<!-- ============ TOOL COVERAGE SUMMARY ============ -->
+<h2>Tool Coverage Summary</h2>
+<table>
+  <tr><th>Tool</th><th>Total Actions</th><th>Probed</th><th>Pass</th><th>Known Bug</th><th>New Bug</th><th>Config/Timeout</th></tr>
+  <tr><td><code>sheets_core</code></td><td>21</td><td>1</td><td class="pass">0</td><td>1</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_data</code></td><td>25</td><td>10</td><td class="pass">8</td><td>0</td><td>1</td><td>0</td></tr>
+  <tr><td><code>sheets_compute</code></td><td>16</td><td>16</td><td class="pass">7</td><td>5</td><td>2</td><td>2</td></tr>
+  <tr><td><code>sheets_analyze</code></td><td>23</td><td>3</td><td class="pass">2</td><td>1</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_format</code></td><td>25</td><td>2</td><td class="pass">1</td><td>1</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_dimensions</code></td><td>30</td><td>1</td><td class="pass">1</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_advanced</code></td><td>31</td><td>1</td><td class="pass">1</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_visualize</code></td><td>18</td><td>1</td><td class="pass">1</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_fix</code></td><td>6</td><td>5</td><td class="pass">5</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_dependencies</code></td><td>10</td><td>8</td><td class="pass">8</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_history</code></td><td>10</td><td>3</td><td class="pass">2</td><td>0</td><td>0</td><td>1</td></tr>
+  <tr><td><code>sheets_session</code></td><td>31</td><td>12</td><td class="pass">12</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_collaborate</code></td><td>41</td><td>8</td><td class="pass">7</td><td>0</td><td>0</td><td>1</td></tr>
+  <tr><td><code>sheets_appsscript</code></td><td>19</td><td>7</td><td class="pass">4</td><td>1</td><td>0</td><td>2</td></tr>
+  <tr><td><code>sheets_bigquery</code></td><td>17</td><td>1</td><td class="pass">1</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_agent</code></td><td>8</td><td>1</td><td class="pass">1</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_transaction</code></td><td>6</td><td>1</td><td class="pass">1</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_templates</code></td><td>8</td><td>1</td><td class="pass">1</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_confirm</code></td><td>5</td><td>1</td><td class="pass">1</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_connectors</code></td><td>10</td><td>1</td><td class="pass">1</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><code>sheets_quality</code></td><td>4</td><td>1</td><td class="pass">0</td><td>0</td><td>0</td><td>1</td></tr>
+  <tr><td style="font-weight:700;">TOTAL</td><td style="font-weight:700;">404</td><td style="font-weight:700;">86*</td><td class="pass" style="font-weight:700;">65</td><td style="font-weight:700;">9</td><td style="font-weight:700;">3</td><td style="font-weight:700;">7</td></tr>
+</table>
+<p class="detail" style="color: var(--dim); font-size: 12px; margin-top: -12px;">* Some actions were probed multiple times with different parameters. Unique action count: 68.</p>
+
+<!-- ============ VERDICT ============ -->
+<h2>Verdict</h2>
+<div class="note">
+  <strong>Post-fix server health (projected):</strong> Once the server restarts with the compiled fixes, the projected pass rate jumps from <strong>76.5%</strong> to <strong>91.2%</strong> (62/68 probed actions). The remaining failures are:<br><br>
+  &bull; <strong>3 new bugs</strong> (BUG-18, 19, 20) requiring additional code fixes<br>
+  &bull; <strong>2 timeouts</strong> (timeline, version_list_revisions) that may need timeout tuning or pagination optimization<br>
+  &bull; <strong>3 config/env skips</strong> (Redis, Federation, OAuth scopes) &mdash; expected in test environment<br><br>
+  <strong>Recommendation:</strong> Fix BUG-18 (data.auto_fill dryRun) immediately &mdash; it's a <span class="fail">data safety issue</span>. BUG-19 and BUG-20 are medium/low priority.
+</div>
+
+<p style="color: var(--dim); font-size: 12px; margin-top: 40px; text-align: center;">Generated 2026-03-22 &bull; ServalSheets v1.7.0 &bull; MCP Protocol 2025-11-25 &bull; 25 tools, 404 actions</p>
+
+</div>
+</body>
+</html>

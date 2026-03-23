@@ -1,0 +1,23 @@
+{
+  "planId": "0d7e9eb1-ed6c-441a-95f3-f468a0c9080e",
+  "description": "read data from spreadsheet",
+  "spreadsheetId": "test-spreadsheet-abc",
+  "steps": [
+    {
+      "stepId": "0d7e9eb1-ed6c-441a-95f3-f468a0c9080e-step-0",
+      "tool": "sheets_data",
+      "action": "read",
+      "description": "Read data",
+      "params": {
+        "spreadsheetId": "test-spreadsheet-abc",
+        "range": "Sheet1!A1:B5"
+      }
+    }
+  ],
+  "status": "draft",
+  "results": [],
+  "checkpoints": [],
+  "createdAt": "2026-03-19T23:39:07.826Z",
+  "updatedAt": "2026-03-19T23:39:07.826Z",
+  "currentStepIndex": 0
+}

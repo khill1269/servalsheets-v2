@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "src/index.ts",
+    "src/cli.ts",
+    "src/server.ts",
+    "src/http-server.ts",
+    "src/remote-server.ts",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "scripts/**"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-01-16T19:26:26.672Z",
+  "gitCommit": "d03a1e9",
+  "nodeVersion": "v22.21.1",
+  "benchmarks": {
+    "metadata-fetch": {
+      "avgLatency": null,
+      "p95Latency": null,
+      "p99Latency": null,
+      "note": "Run with RUN_BENCHMARKS=true to collect real metrics"
+    },
+    "batch-request": {
+      "avgLatency": null,
+      "note": "Run with RUN_BENCHMARKS=true to collect real metrics"
+    },
+    "connection-reuse": {
+      "firstCall": null,
+      "avgSubsequent": null,
+      "improvementPercent": null,
+      "note": "Run with RUN_BENCHMARKS=true to collect real metrics"
+    },
+    "concurrent-requests": {
+      "totalTime": null,
+      "avgPerRequest": null,
+      "note": "Run with RUN_BENCHMARKS=true to collect real metrics"
+    }
+  }
+}

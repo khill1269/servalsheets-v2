@@ -1,0 +1,43 @@
+{
+  "name": "test-intelligence-mcp-server",
+  "description": "ML-powered test selection and failure prediction for ServalSheets",
+  "version": "1.0.0",
+  "author": "",
+  "bin": {
+    "test-intelligence-server": "./dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "better-sqlite3": "^12.6.2",
+    "fast-glob": "^3.3.3",
+    "ml-cart": "^2.1.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.19.9",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.18"
+  },
+  "keywords": [
+    "mcp",
+    "ml",
+    "prediction",
+    "test-selection",
+    "testing"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "collect": "tsx src/collect-data.ts",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "train": "tsx src/train-model.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "watch": "tsc -p tsconfig.json --watch"
+  },
+  "type": "module"
+}

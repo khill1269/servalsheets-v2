@@ -1,0 +1,222 @@
+# ServalSheets Development Team Configuration
+# Use for: Phase 2-4 (Architecture Excellence, Cutting-Edge Features, Testing & Quality)
+
+team:
+  name: servalsheets-dev
+  description: 'Multi-agent development team for ServalSheets MCP Server'
+  version: '1.0.0'
+
+  lead:
+    name: orchestrator
+    role: 'Team lead and phase coordinator'
+    responsibilities:
+      - 'Task decomposition and assignment'
+      - 'Progress tracking and reporting'
+      - 'Conflict resolution'
+      - 'Phase completion approval'
+      - 'Quality gate enforcement'
+    tools:
+      - Task
+      - Read
+      - Bash
+      - AskUserQuestion
+    authority:
+      - 'Veto power on all changes'
+      - 'Can block phase completion'
+      - 'Can reassign tasks'
+      - 'Can spawn new teammates'
+
+  teammates:
+    - name: frontend
+      role: 'UI components and frontend integration'
+      specialization:
+        - 'React components'
+        - 'TypeScript interfaces'
+        - 'MCP resource providers'
+        - 'API browser UI'
+        - 'Interactive documentation'
+      tools:
+        - Read
+        - Write
+        - Edit
+        - Bash
+        - Glob
+        - Grep
+      constraints:
+        - 'Only modify files in: src/resources/, src/mcp/, docs/'
+        - 'Must write tests for all UI components'
+        - 'Follow React best practices'
+      work_pattern: 'Parallel'
+      max_active_tasks: 3
+
+    - name: backend
+      role: 'Services, handlers, and API implementation'
+      specialization:
+        - 'Handler implementation'
+        - 'Service layer'
+        - 'Google API integration'
+        - 'Business logic'
+        - 'Data processing'
+      tools:
+        - Read
+        - Write
+        - Edit
+        - Bash
+        - Glob
+        - Grep
+      constraints:
+        - 'Only modify files in: src/handlers/, src/services/, src/utils/'
+        - 'Must follow TDD (tests first)'
+        - 'Use BaseHandler pattern'
+        - 'Structured errors only'
+      work_pattern: 'Pipeline'
+      max_active_tasks: 2
+
+    - name: testing
+      role: 'Test design, implementation, and quality assurance'
+      specialization:
+        - 'Vitest test suites'
+        - 'Contract testing'
+        - 'Integration testing'
+        - 'E2E testing'
+        - 'Test coverage analysis'
+      tools:
+        - Read
+        - Write
+        - Edit
+        - Bash
+      constraints:
+        - 'Only modify files in: tests/'
+        - 'Must achieve 80%+ coverage'
+        - 'Follow TDD principles'
+      work_pattern: 'Parallel'
+      max_active_tasks: 4
+
+    - name: documentation
+      role: 'Documentation, examples, and API guides'
+      specialization:
+        - 'Markdown documentation'
+        - 'API reference'
+        - 'Code examples'
+        - 'User guides'
+        - 'Architecture docs'
+      tools:
+        - Read
+        - Write
+        - Edit
+        - Glob
+        - Grep
+      constraints:
+        - 'Only modify files in: docs/, README.md'
+        - 'Follow documentation standards'
+        - 'Include code examples'
+        - 'Keep MEMORY.md under 200 lines'
+      work_pattern: 'Pipeline'
+      max_active_tasks: 2
+
+    - name: performance
+      role: 'Benchmarking, profiling, and optimization'
+      specialization:
+        - 'Performance benchmarks'
+        - 'Profiling analysis'
+        - 'Cache optimization'
+        - 'API call reduction'
+        - 'Memory optimization'
+      tools:
+        - Read
+        - Bash
+        - Grep
+        - Glob
+      constraints:
+        - 'Only modify files in: tests/benchmarks/, src/services/'
+        - 'Must show before/after metrics'
+        - 'Document optimization rationale'
+      work_pattern: 'Sequential'
+      max_active_tasks: 1
+
+    - name: security
+      role: 'Security analysis, RBAC, and audit logs'
+      specialization:
+        - 'OAuth 2.1 implementation'
+        - 'RBAC and permissions'
+        - 'Audit logging'
+        - 'Input validation'
+        - 'Security testing'
+      tools:
+        - Read
+        - Edit
+        - Bash
+        - Grep
+      constraints:
+        - 'Only modify files in: src/security/, src/services/audit-logger.ts'
+        - 'Must pass security review'
+        - 'Document security implications'
+      work_pattern: 'Sequential'
+      max_active_tasks: 1
+
+    - name: devops
+      role: 'CI/CD, deployment, and infrastructure'
+      specialization:
+        - 'GitHub Actions'
+        - 'Docker containers'
+        - 'Kubernetes deployment'
+        - 'Multi-region setup'
+        - 'Monitoring integration'
+      tools:
+        - Read
+        - Write
+        - Edit
+        - Bash
+      constraints:
+        - 'Only modify files in: .github/, deployment/, Dockerfile'
+        - 'Test in staging before production'
+        - 'Document deployment steps'
+      work_pattern: 'Sequential'
+      max_active_tasks: 1
+
+    - name: quality
+      role: 'Validation gates, compliance, and quality assurance'
+      specialization:
+        - 'Gate pipeline (G0-G4)'
+        - 'MCP compliance testing'
+        - 'Contract testing'
+        - 'Mutation testing'
+        - 'Quality metrics'
+      tools:
+        - Read
+        - Bash
+      constraints:
+        - 'Read-only access to source code'
+        - 'Can block phase completion if gates fail'
+        - 'Must run all gates sequentially'
+      work_pattern: 'Watchdog'
+      max_active_tasks: 1
+
+  coordination:
+    task_board:
+      location: '.claude/tasks/current-phase.yaml'
+      format: 'YAML with DAG dependencies'
+      update_frequency: 'Real-time'
+
+    messaging:
+      enabled: true
+      persistence: '.claude/inbox/'
+      format: 'Markdown files'
+      retention: '30 days'
+
+    conflict_resolution:
+      strategy: 'Lead decides'
+      escalation: 'Ask user via AskUserQuestion'
+
+    quality_gates:
+      enforce: true
+      blocking_gates: ['G0', 'G1', 'G2']
+      gate_runner: 'quality teammate'
+
+  success_criteria:
+    - 'All tasks completed'
+    - 'All tests passing (npm run verify)'
+    - 'Quality gates G0-G4 passed'
+    - 'Code review approved (human or lead)'
+    - 'Documentation updated'
+    - 'No merge conflicts'

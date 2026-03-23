@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AnalyzeHandler Snapshots > matches snapshot for analyze_data response 1`] = `
+{
+  "action": "analyze_data",
+  "analyses": [
+    {
+      "confidence": "high",
+      "details": "Fast path statistical analysis using traditional algorithms on tier 3 sample: trends=1, anomalies=0, correlations=0",
+      "findings": [
+        "Analyzed 3 rows with 2 columns (sample of 3 total rows)",
+        "Detected 0 anomalies",
+        "Identified 1 trend patterns",
+        "Found 0 correlations",
+      ],
+      "type": "summary",
+    },
+  ],
+  "duration": 0,
+  "message": "Fast path analysis completed in 0ms using tier 3 sample (3 rows) (stored as analyze://results/analysis-test)",
+  "overallQualityScore": 85,
+  "success": true,
+  "summary": "Fast statistical analysis complete (sample: 3/3 rows). Found 0 anomalies, 1 trends, and 0 correlations.",
+  "topInsights": [
+    "0 anomalies detected in sample",
+    "1 trend patterns identified",
+    "0 correlations found",
+  ],
+}
+`;

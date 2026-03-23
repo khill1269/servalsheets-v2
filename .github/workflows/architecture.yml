@@ -1,0 +1,176 @@
+name: Architecture Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/**/*.ts'
+      - '.dependency-cruiser.cjs'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/**/*.ts'
+      - '.dependency-cruiser.cjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: architecture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-analysis:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for circular dependencies
+        id: circular
+        run: |
+          echo "Running dependency-cruiser..."
+          npx depcruise --config .dependency-cruiser.cjs --output-type err src/ > depcruise-output.txt 2>&1 || true
+
+          # Check for circular dependencies specifically
+          if grep -q "error no-circular" depcruise-output.txt; then
+            echo "❌ Circular dependencies detected"
+            cat depcruise-output.txt
+            exit 1
+          fi
+
+          # Check for other errors (not warnings)
+          if grep -q "^  error" depcruise-output.txt; then
+            echo "⚠️  Architecture violations detected"
+            cat depcruise-output.txt
+            exit 1
+          fi
+
+          # Show warnings but don't fail
+          if grep -q "^  warn" depcruise-output.txt; then
+            echo "⚠️  Architecture warnings (non-blocking):"
+            cat depcruise-output.txt
+          else
+            echo "✅ No architecture violations"
+          fi
+
+      - name: Generate dependency graph
+        if: always()
+        run: |
+          # Generate visual dependency graph
+          npx depcruise --config .dependency-cruiser.cjs --output-type dot src/ > architecture.dot 2>/dev/null || true
+
+          # Convert to SVG if dot is available
+          if command -v dot &> /dev/null; then
+            dot -T svg architecture.dot > architecture-graph.svg
+            echo "✅ Generated dependency graph: architecture-graph.svg"
+          else
+            echo "ℹ️  Graphviz not installed, skipping SVG generation"
+          fi
+
+      - name: Upload dependency graph
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dependency-graph
+          path: |
+            architecture.dot
+            architecture-graph.svg
+          retention-days: 30
+
+  dead-code-analysis:
+    name: Dead Code Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for dead code
+        id: knip
+        run: |
+          echo "Running knip..."
+          npx knip --production > knip-output.txt 2>&1 || true
+
+          # Show results
+          if [ -s knip-output.txt ]; then
+            echo "⚠️  Dead code detected:"
+            cat knip-output.txt
+
+            # Count issues
+            ISSUE_COUNT=$(grep -c "^" knip-output.txt || echo "0")
+            echo "Total issues: $ISSUE_COUNT"
+
+            # Fail if more than 10 unused items (configurable threshold)
+            if [ "$ISSUE_COUNT" -gt 10 ]; then
+              echo "❌ Too many unused items ($ISSUE_COUNT > 10 threshold)"
+              exit 1
+            fi
+          else
+            echo "✅ No dead code detected"
+          fi
+
+      - name: Upload dead code report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dead-code-report
+          path: knip-output.txt
+          retention-days: 30
+
+  architecture-summary:
+    name: Architecture Summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [dependency-analysis, dead-code-analysis]
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+
+      - name: Generate summary
+        run: |
+          echo "## 🏗️  Architecture Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Dependency analysis status
+          if [ "${{ needs.dependency-analysis.result }}" == "success" ]; then
+            echo "✅ **Dependency Analysis**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Dependency Analysis**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Dead code analysis status
+          if [ "${{ needs.dead-code-analysis.result }}" == "success" ]; then
+            echo "✅ **Dead Code Analysis**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️  **Dead Code Analysis**: Warning" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 View detailed reports in the artifacts section." >> $GITHUB_STEP_SUMMARY

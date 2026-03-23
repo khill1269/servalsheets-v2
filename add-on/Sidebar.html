@@ -1,0 +1,2621 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Google Sans', Arial, sans-serif;
+        font-size: 14px;
+        color: #202124;
+        padding: 0;
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+        color: white;
+        padding: 16px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+      }
+
+      .header .subtitle {
+        font-size: 12px;
+        opacity: 0.9;
+        margin-top: 4px;
+      }
+
+      .quota-status {
+        background: #fff3cd;
+        padding: 12px;
+        margin: 0;
+        border-left: 4px solid #ffc107;
+        font-size: 12px;
+        display: none;
+      }
+
+      .quota-status.warning {
+        background: #fff3cd;
+        border-color: #ffc107;
+      }
+
+      .quota-status.error {
+        background: #f8d7da;
+        border-color: #dc3545;
+      }
+
+      .chat-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        background: #f8f9fa;
+      }
+
+      .message {
+        margin-bottom: 16px;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message-bubble {
+        padding: 12px 16px;
+        border-radius: 12px;
+        max-width: 85%;
+        word-wrap: break-word;
+        line-height: 1.4;
+        white-space: pre-wrap;
+      }
+
+      .user-message .message-bubble {
+        background: #4285f4;
+        color: white;
+        margin-left: auto;
+        border-bottom-right-radius: 4px;
+      }
+
+      .ai-message .message-bubble {
+        background: white;
+        color: #202124;
+        border: 1px solid #dadce0;
+        border-bottom-left-radius: 4px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      .error-message .message-bubble {
+        background: #fce8e6;
+        color: #d93025;
+        border: 1px solid #f28b82;
+      }
+
+      .warning-message .message-bubble {
+        background: #fff4e5;
+        color: #b06000;
+        border: 1px solid #f6c26b;
+      }
+
+      .system-message .message-bubble {
+        background: #eef3fd;
+        color: #185abc;
+        border: 1px solid #aecbfa;
+      }
+
+      .message-label {
+        font-size: 11px;
+        color: #5f6368;
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+
+      .loading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: white;
+        border: 1px solid #dadce0;
+        border-radius: 12px;
+        max-width: 85%;
+      }
+
+      .loading-dots {
+        display: flex;
+        gap: 4px;
+      }
+
+      .loading-dot {
+        width: 6px;
+        height: 6px;
+        background: #5f6368;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out;
+      }
+
+      .loading-dot:nth-child(1) {
+        animation-delay: -0.32s;
+      }
+      .loading-dot:nth-child(2) {
+        animation-delay: -0.16s;
+      }
+
+      @keyframes bounce {
+        0%,
+        80%,
+        100% {
+          transform: scale(0);
+        }
+        40% {
+          transform: scale(1);
+        }
+      }
+
+      .input-container {
+        background: white;
+        border-top: 1px solid #dadce0;
+        padding: 12px;
+      }
+
+      .quick-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .quick-action {
+        background: white;
+        border: 1px solid #dadce0;
+        border-radius: 16px;
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+      }
+
+      .quick-action:hover {
+        background: #f8f9fa;
+        border-color: #4285f4;
+        color: #4285f4;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+      }
+
+      #prompt {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid #dadce0;
+        border-radius: 20px;
+        font-size: 14px;
+        font-family: inherit;
+        resize: none;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      #prompt:focus {
+        border-color: #4285f4;
+      }
+
+      .send-button {
+        background: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+
+      .send-button:hover {
+        background: #1a73e8;
+      }
+
+      .send-button:disabled {
+        background: #dadce0;
+        cursor: not-allowed;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #5f6368;
+      }
+
+      .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .empty-state h3 {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #202124;
+      }
+
+      .empty-state p {
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      /* Suggestion Cards */
+      .sugg-panel { font-size: 13px; }
+      .sugg-header { font-weight: 600; color: #1967d2; margin-bottom: 8px; font-size: 13px; }
+      .sugg-card { padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px;
+        margin-bottom: 6px; background: #fafafa; }
+      .sugg-title { font-weight: 500; color: #202124; font-size: 12px; }
+      .sugg-desc { font-size: 11px; color: #5f6368; margin: 3px 0 5px; }
+      .sugg-meta { display: flex; align-items: center; justify-content: space-between; }
+      .sugg-conf { font-size: 10px; color: #188038; }
+      .sugg-apply { font-size: 11px; padding: 2px 10px; background: #1967d2; color: white;
+        border: none; border-radius: 3px; cursor: pointer; }
+      .sugg-apply:disabled { background: #bdbdbd; cursor: default; }
+      .quality-warnings-container { margin-top: 8px; }
+      .quality-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #fff3e0;
+        color: #b06000;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .quality-list {
+        display: none;
+        margin-top: 6px;
+        padding-left: 18px;
+      }
+      .quality-item {
+        margin: 4px 0;
+        font-size: 11px;
+      }
+      .quality-high { color: #c5221f; }
+      .quality-medium { color: #b06000; }
+      .quality-low { color: #137333; }
+      .quality-warning { color: #b06000; }
+      .quality-info { color: #137333; }
+      .quality-fix-btn {
+        margin-left: 8px;
+        padding: 2px 8px;
+        font-size: 10px;
+        background: #1967d2;
+        color: white;
+        border: none;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      .quality-fix-btn:disabled { background: #bdbdbd; cursor: default; }
+      .truncated-chip {
+        display: inline-block;
+        margin-top: 6px;
+        margin-right: 6px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #e8f0fe;
+        color: #185abc;
+        font-size: 11px;
+      }
+
+      /* Phase 3.1: Context Suggestions Styles */
+      .context-panel {
+        background: linear-gradient(135deg, #e8f0fe 0%, #f0f4ff 100%);
+        border-bottom: 1px solid #d2e3fc;
+        padding: 12px 16px;
+        animation: slideDown 0.3s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          max-height: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+        to {
+          opacity: 1;
+          max-height: 300px;
+          padding-top: 12px;
+          padding-bottom: 12px;
+        }
+      }
+
+      .context-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .context-icon {
+        font-size: 18px;
+      }
+
+      .context-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #1967d2;
+        flex: 1;
+      }
+
+      .context-close {
+        background: none;
+        border: none;
+        color: #5f6368;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+
+      .context-close:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+
+      .suggestion-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .suggestion-btn {
+        background: white;
+        border: 1px solid #d2e3fc;
+        border-radius: 8px;
+        padding: 10px 12px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .suggestion-btn:hover {
+        background: #f8fbff;
+        border-color: #1967d2;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .suggestion-btn:active {
+        transform: translateY(0);
+      }
+
+      .suggestion-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #1967d2;
+      }
+
+      .suggestion-desc {
+        font-size: 11px;
+        color: #5f6368;
+        line-height: 1.3;
+      }
+
+      /* Phase 3.2: Batch Operations Styles */
+      .batch-panel {
+        background: #fff;
+        border-bottom: 1px solid #dadce0;
+        display: flex;
+        flex-direction: column;
+        max-height: 300px;
+        animation: slideDown 0.3s ease-out;
+      }
+
+      .batch-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #fff9e6 0%, #fffbf0 100%);
+        border-bottom: 1px solid #ffd966;
+      }
+
+      .batch-icon {
+        font-size: 18px;
+      }
+
+      .batch-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #bf7e00;
+        flex: 1;
+      }
+
+      .batch-count {
+        font-size: 12px;
+        color: #bf7e00;
+        background: #fff;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+      }
+
+      .batch-close {
+        background: none;
+        border: none;
+        color: #5f6368;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+
+      .batch-close:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+
+      .batch-queue {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 16px;
+        min-height: 100px;
+        max-height: 200px;
+      }
+
+      .batch-empty {
+        text-align: center;
+        padding: 20px;
+        color: #5f6368;
+      }
+
+      .batch-empty p {
+        margin: 4px 0;
+        font-size: 13px;
+      }
+
+      .batch-empty-hint {
+        font-size: 11px;
+        opacity: 0.8;
+      }
+
+      .batch-item {
+        background: #f8f9fa;
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s;
+      }
+
+      .batch-item:hover {
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .batch-item-icon {
+        font-size: 16px;
+      }
+
+      .batch-item-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .batch-item-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #202124;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .batch-item-params {
+        font-size: 11px;
+        color: #5f6368;
+        margin-top: 2px;
+      }
+
+      .batch-item-remove {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        font-size: 16px;
+        line-height: 1;
+        transition: background 0.2s;
+      }
+
+      .batch-item-remove:hover {
+        background: #ffebee;
+      }
+
+      .batch-actions {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border-top: 1px solid #dadce0;
+      }
+
+      .batch-clear-btn {
+        flex: 1;
+        background: white;
+        border: 1px solid #dadce0;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .batch-clear-btn:hover {
+        background: #f8f9fa;
+        border-color: #5f6368;
+      }
+
+      .batch-execute-btn {
+        flex: 2;
+        background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .batch-execute-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .batch-execute-btn:disabled {
+        background: #dadce0;
+        cursor: not-allowed;
+      }
+
+      .batch-toggle-btn {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        background: linear-gradient(135deg, #ffd966 0%, #ffb800 100%);
+        color: #5f4000;
+        border: none;
+        border-radius: 24px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s;
+        z-index: 100;
+      }
+
+      .batch-toggle-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .batch-toggle-btn:active {
+        transform: translateY(0);
+      }
+
+      #batch-toggle-count {
+        background: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+        margin-left: 4px;
+      }
+
+      /* Phase 3.3: History Panel Styles */
+      .history-panel {
+        background: #fff;
+        border-bottom: 1px solid #dadce0;
+        display: flex;
+        flex-direction: column;
+        max-height: 350px;
+        animation: slideDown 0.3s ease-out;
+      }
+
+      .history-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
+        border-bottom: 1px solid #81c784;
+      }
+
+      .history-icon {
+        font-size: 18px;
+      }
+
+      .history-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #2e7d32;
+        flex: 1;
+      }
+
+      .history-refresh {
+        background: none;
+        border: none;
+        color: #2e7d32;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+
+      .history-refresh:hover {
+        background: rgba(46, 125, 50, 0.1);
+        transform: rotate(180deg);
+      }
+
+      .history-close {
+        background: none;
+        border: none;
+        color: #5f6368;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+
+      .history-close:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+
+      .history-stats {
+        padding: 8px 16px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #dadce0;
+        font-size: 11px;
+        color: #5f6368;
+        display: none;
+      }
+
+      .history-stats.visible {
+        display: block;
+      }
+
+      .history-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 16px;
+        min-height: 120px;
+        max-height: 250px;
+      }
+
+      .history-empty {
+        text-align: center;
+        padding: 20px;
+        color: #5f6368;
+      }
+
+      .history-empty p {
+        margin: 4px 0;
+        font-size: 13px;
+      }
+
+      .history-empty-hint {
+        font-size: 11px;
+        opacity: 0.8;
+      }
+
+      .history-item {
+        background: #f8f9fa;
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        transition: all 0.2s;
+      }
+
+      .history-item:hover {
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .history-item-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .history-item-icon {
+        font-size: 14px;
+      }
+
+      .history-item-title {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 500;
+        color: #202124;
+      }
+
+      .history-item-time {
+        font-size: 11px;
+        color: #5f6368;
+      }
+
+      .history-item-details {
+        font-size: 11px;
+        color: #5f6368;
+        padding-left: 22px;
+      }
+
+      .history-item-actions {
+        display: flex;
+        gap: 8px;
+        padding-left: 22px;
+      }
+
+      .history-undo-btn {
+        background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 4px 12px;
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .history-undo-btn:hover {
+        background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+        transform: translateY(-1px);
+      }
+
+      .history-undo-btn:disabled {
+        background: #dadce0;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .history-actions {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border-top: 1px solid #dadce0;
+      }
+
+      .history-undo-last-btn {
+        flex: 1;
+        background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .history-undo-last-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .history-undo-last-btn:disabled {
+        background: #dadce0;
+        cursor: not-allowed;
+      }
+
+      .history-toggle-btn {
+        position: fixed;
+        bottom: 140px;
+        right: 16px;
+        background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
+        color: white;
+        border: none;
+        border-radius: 24px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s;
+        z-index: 100;
+      }
+
+      .history-toggle-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .history-toggle-btn:active {
+        transform: translateY(0);
+      }
+
+      /* Phase 3.4: Preview Mode Styles */
+      .preview-mode-toggle {
+        padding: 8px 16px;
+        background: #fff3e0;
+        border-bottom: 1px solid #ffb74d;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+      }
+
+      .preview-mode-toggle.active {
+        background: #e3f2fd;
+        border-color: #42a5f5;
+      }
+
+      .preview-toggle-label {
+        flex: 1;
+        color: #5f6368;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .preview-toggle-label.active {
+        color: #1976d2;
+        font-weight: 500;
+      }
+
+      .preview-icon {
+        font-size: 16px;
+      }
+
+      .preview-switch {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        background: #dadce0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .preview-switch.active {
+        background: #42a5f5;
+      }
+
+      .preview-switch-knob {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.3s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+
+      .preview-switch.active .preview-switch-knob {
+        transform: translateX(20px);
+      }
+
+      .preview-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: fadeIn 0.2s;
+      }
+
+      .preview-modal.visible {
+        display: flex;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .preview-dialog {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease-out;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .preview-dialog-header {
+        padding: 16px;
+        border-bottom: 1px solid #dadce0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .preview-dialog-icon {
+        font-size: 24px;
+      }
+
+      .preview-dialog-title {
+        flex: 1;
+        font-size: 16px;
+        font-weight: 500;
+        color: #202124;
+      }
+
+      .preview-dialog-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+      }
+
+      .preview-section {
+        margin-bottom: 16px;
+      }
+
+      .preview-section-title {
+        font-size: 12px;
+        font-weight: 500;
+        color: #5f6368;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      .preview-section-content {
+        background: #f8f9fa;
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 13px;
+        color: #202124;
+      }
+
+      .preview-code {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .preview-warning {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .preview-warning-icon {
+        color: #f57c00;
+        font-size: 18px;
+      }
+
+      .preview-warning-text {
+        flex: 1;
+        font-size: 12px;
+        color: #5f4000;
+      }
+
+      .preview-dialog-footer {
+        padding: 16px;
+        border-top: 1px solid #dadce0;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .preview-dialog-btn {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .preview-dialog-btn.cancel {
+        background: white;
+        border: 1px solid #dadce0;
+        color: #5f6368;
+      }
+
+      .preview-dialog-btn.cancel:hover {
+        background: #f8f9fa;
+      }
+
+      .preview-dialog-btn.execute {
+        background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+        border: none;
+        color: white;
+      }
+
+      .preview-dialog-btn.execute:hover {
+        background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h2>🦊 ServalSheets AI</h2>
+      <div class="subtitle">AI-powered spreadsheet assistant</div>
+    </div>
+
+    <div id="quota-status" class="quota-status"></div>
+
+    <!-- Phase 3.4: Preview Mode Toggle -->
+    <div id="preview-mode-toggle" class="preview-mode-toggle">
+      <div class="preview-toggle-label" id="preview-toggle-label">
+        <span class="preview-icon">👁️</span>
+        <span>Preview before executing</span>
+      </div>
+      <div class="preview-switch" id="preview-switch" onclick="togglePreviewMode()">
+        <div class="preview-switch-knob"></div>
+      </div>
+    </div>
+
+    <!-- Phase 3.4: Preview Modal -->
+    <div id="preview-modal" class="preview-modal">
+      <div class="preview-dialog">
+        <div class="preview-dialog-header">
+          <span class="preview-dialog-icon">👁️</span>
+          <span class="preview-dialog-title">Preview Operation</span>
+        </div>
+        <div class="preview-dialog-body" id="preview-dialog-body">
+          <!-- Dynamically populated -->
+        </div>
+        <div class="preview-dialog-footer">
+          <button class="preview-dialog-btn cancel" onclick="closePreviewModal()">Cancel</button>
+          <button class="preview-dialog-btn execute" onclick="executeAfterPreview()">
+            Execute
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3.1: Context Suggestions Panel -->
+    <div id="context-suggestions" class="context-panel" style="display: none">
+      <div class="context-header">
+        <span class="context-icon">💡</span>
+        <span class="context-label">Suggested for your selection</span>
+        <button class="context-close" onclick="hideContextSuggestions()">×</button>
+      </div>
+      <div id="suggestion-list" class="suggestion-list"></div>
+    </div>
+
+    <!-- Phase 3.2: Batch Operations Panel -->
+    <div id="batch-panel" class="batch-panel" style="display: none">
+      <div class="batch-header">
+        <span class="batch-icon">📦</span>
+        <span class="batch-label">Batch Operations</span>
+        <span id="batch-count" class="batch-count">(0)</span>
+        <button class="batch-close" onclick="toggleBatchPanel()">×</button>
+      </div>
+      <div id="batch-queue" class="batch-queue">
+        <div class="batch-empty">
+          <p>No operations queued</p>
+          <p class="batch-empty-hint">Hold Shift while clicking actions to add them to the batch</p>
+        </div>
+      </div>
+      <div class="batch-actions">
+        <button class="batch-clear-btn" onclick="clearBatch()">Clear All</button>
+        <button
+          class="batch-execute-btn"
+          id="batch-execute-btn"
+          onclick="executeBatchOperations()"
+          disabled
+        >
+          Execute All
+        </button>
+      </div>
+    </div>
+
+    <!-- Batch Panel Toggle Button -->
+    <button
+      id="batch-toggle"
+      class="batch-toggle-btn"
+      onclick="toggleBatchPanel()"
+      style="display: none"
+    >
+      📦 <span id="batch-toggle-count">0</span>
+    </button>
+
+    <!-- Phase 3.3: History Panel -->
+    <div id="history-panel" class="history-panel" style="display: none">
+      <div class="history-header">
+        <span class="history-icon">🕐</span>
+        <span class="history-label">Operation History</span>
+        <button class="history-refresh" onclick="refreshHistory()" title="Refresh history">
+          ↻
+        </button>
+        <button class="history-close" onclick="toggleHistoryPanel()">×</button>
+      </div>
+      <div class="history-stats" id="history-stats"></div>
+      <div id="history-list" class="history-list">
+        <div class="history-empty">
+          <p>No operations yet</p>
+          <p class="history-empty-hint">Operations will appear here as you use the add-on</p>
+        </div>
+      </div>
+      <div class="history-actions">
+        <button
+          class="history-undo-last-btn"
+          onclick="undoLast()"
+          id="history-undo-last-btn"
+          disabled
+        >
+          ↶ Undo Last
+        </button>
+      </div>
+    </div>
+
+    <!-- History Panel Toggle Button -->
+    <button id="history-toggle" class="history-toggle-btn" onclick="toggleHistoryPanel()">
+      🕐 History
+    </button>
+
+    <div class="chat-container" id="chat">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"
+          />
+        </svg>
+        <h3>Welcome to ServalSheets!</h3>
+        <p>
+          Ask me anything about your spreadsheet. I can analyze data, create formulas, generate
+          charts, and more.
+        </p>
+      </div>
+    </div>
+
+    <div class="input-container">
+      <div class="quick-actions">
+        <button class="quick-action" onclick="quickPrompt('Analyze this data')">📊 Analyze</button>
+        <button class="quick-action" onclick="quickPrompt('Create a formula for...')">
+          🔢 Formula
+        </button>
+        <button class="quick-action" onclick="quickPrompt('Suggest a chart for this data')">
+          📈 Chart
+        </button>
+        <button class="quick-action" onclick="quickPrompt('Find patterns in this data')">
+          🔍 Patterns
+        </button>
+        <button class="quick-action" onclick="quickAction_listSheets()">📋 Sheets</button>
+        <button class="quick-action" onclick="quickAction_addSheet()">➕ Add Sheet</button>
+        <button class="quick-action" onclick="quickAction_insertRows()">➕ Rows</button>
+        <button class="quick-action" onclick="quickAction_share()">👥 Share</button>
+        <button class="quick-action" onclick="quickAction_comments()">💬 Comments</button>
+        <button class="quick-action" onclick="quickAction_suggestNext()">💡 Smart Suggestions</button>
+        <button class="quick-action" onclick="quickAction_buildDashboard()">📊 Build Dashboard</button>
+        <button class="quick-action" onclick="quickAction_runAgent()">🤖 Run Agent</button>
+        <button class="quick-action" onclick="quickAction_compute()">📉 Compute</button>
+        <button class="quick-action" onclick="quickAction_liveData()">🌐 Live Data</button>
+      </div>
+
+      <div class="input-group">
+        <textarea
+          id="prompt"
+          rows="1"
+          placeholder="Ask me anything..."
+          onkeydown="handleKeyPress(event)"
+        ></textarea>
+        <button class="send-button" id="send-btn" onclick="sendMessage()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let isProcessing = false;
+      const chat = document.getElementById('chat');
+      const promptInput = document.getElementById('prompt');
+      const sendButton = document.getElementById('send-btn');
+
+      // Auto-resize textarea
+      promptInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      });
+
+      function handleKeyPress(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      }
+
+      function quickPrompt(text) {
+        promptInput.value = text;
+        promptInput.focus();
+      }
+
+      // Quick action handlers for new tools
+      function quickAction_listSheets() {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            if (result.success && result.response && result.response.sheets) {
+              const sheets = result.response.sheets;
+              const sheetList = sheets
+                .map((s) => `• ${s.properties?.title || 'Untitled'} (ID: ${s.properties?.sheetId})`)
+                .join('\n');
+              addMessage(`📋 Sheets in this spreadsheet:\n\n${sheetList}`, 'ai');
+            } else {
+              addMessage('Unable to list sheets', 'error');
+            }
+          })
+          .withFailureHandler(handleError)
+          .listSheets();
+      }
+
+      function quickAction_addSheet() {
+        const sheetName = prompt('Enter new sheet name:');
+        if (!sheetName) return;
+
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            if (result.success) {
+              addMessage(`✅ Sheet "${sheetName}" created successfully!`, 'ai');
+            } else {
+              addMessage(
+                'Failed to create sheet: ' + (result.error?.message || 'Unknown error'),
+                'error'
+              );
+            }
+          })
+          .withFailureHandler(handleError)
+          .addSheet(sheetName);
+      }
+
+      function quickAction_insertRows() {
+        const startIndex = prompt('Start row index (0-based):');
+        if (startIndex === null) return;
+
+        const count = prompt('Number of rows to insert:', '1');
+        if (count === null) return;
+
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            if (result.success) {
+              addMessage(`✅ Inserted ${count} row(s) at index ${startIndex}`, 'ai');
+            } else {
+              addMessage(
+                'Failed to insert rows: ' + (result.error?.message || 'Unknown error'),
+                'error'
+              );
+            }
+          })
+          .withFailureHandler(handleError)
+          .insertRows(parseInt(startIndex), parseInt(count));
+      }
+
+      function quickAction_share() {
+        const email = prompt('Enter email address to share with:');
+        if (!email) return;
+
+        const role = prompt('Permission level (reader/writer/commenter):', 'reader');
+        if (!role) return;
+
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            if (result.success) {
+              addMessage(`✅ Shared with ${email} as ${role}`, 'ai');
+            } else {
+              addMessage('Failed to share: ' + (result.error?.message || 'Unknown error'), 'error');
+            }
+          })
+          .withFailureHandler(handleError)
+          .shareWithUser(email, role);
+      }
+
+      function quickAction_comments() {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            if (result.success && result.response && result.response.comments) {
+              const comments = result.response.comments;
+              if (comments.length === 0) {
+                addMessage('💬 No comments found', 'ai');
+              } else {
+                const commentList = comments
+                  .map(
+                    (c) =>
+                      `• ${c.author?.displayName || 'Unknown'}: ${c.content}\n  ${c.resolved ? '✅ Resolved' : '⏳ Open'}`
+                  )
+                  .join('\n\n');
+                addMessage(`💬 Comments (${comments.length}):\n\n${commentList}`, 'ai');
+              }
+            } else {
+              addMessage('Unable to list comments', 'error');
+            }
+          })
+          .withFailureHandler(handleError)
+          .listComments();
+      }
+
+      // ==================== Phase 3.1: Context Detection ====================
+
+      /**
+       * Detects context and displays suggestions
+       */
+      function detectAndShowContext() {
+        google.script.run
+          .withSuccessHandler(displayContextSuggestions)
+          .withFailureHandler(function (error) {
+            console.error('Context detection failed:', error);
+          })
+          .detectContext();
+      }
+
+      /**
+       * Displays context suggestions panel
+       */
+      function displayContextSuggestions(context) {
+        const panel = document.getElementById('context-suggestions');
+        const list = document.getElementById('suggestion-list');
+
+        if (!context || !context.suggestions || context.suggestions.length === 0) {
+          panel.style.display = 'none';
+          return;
+        }
+
+        // Build suggestions HTML
+        list.innerHTML = context.suggestions
+          .map(
+            (s) => `
+        <button class="suggestion-btn" onclick="executeSuggestion('${s.action}')">
+          <div class="suggestion-label">${s.label}</div>
+          <div class="suggestion-desc">${s.description}</div>
+        </button>
+      `
+          )
+          .join('');
+
+        panel.style.display = 'block';
+
+        // Log context for debugging
+        if (context.hasSelection) {
+          console.log('Context detected:', {
+            range: context.range,
+            size: context.size,
+            types: context.types,
+            metrics: context.metrics,
+          });
+        }
+      }
+
+      /**
+       * Hides context suggestions panel
+       */
+      function hideContextSuggestions() {
+        const panel = document.getElementById('context-suggestions');
+        panel.style.display = 'none';
+      }
+
+      /**
+       * Executes a suggested action
+       */
+      function executeSuggestion(action) {
+        // Map suggestion actions to actual functions
+        const actionMap = {
+          analyze: () => quickPrompt('Analyze this data'),
+          chart: () => quickPrompt('Suggest a chart for this data'),
+          patterns: () => quickPrompt('Find patterns in this data'),
+          formula: () => quickPrompt('Create a formula for...'),
+          timeline: () => quickPrompt('Create a timeline chart for this data'),
+          quality: () => quickPrompt('Check data quality and find issues'),
+          format: () => quickPrompt('Format these cells appropriately'),
+          listSheets: quickAction_listSheets,
+        };
+
+        const handler = actionMap[action];
+        if (handler) {
+          handler();
+          hideContextSuggestions();
+        } else {
+          console.warn('Unknown suggestion action:', action);
+        }
+      }
+
+      // Detect context when sidebar loads
+      window.addEventListener('load', function () {
+        // Wait a moment for the sidebar to fully load
+        setTimeout(detectAndShowContext, 500);
+      });
+
+      // ==================== Phase 3.2: Batch Operations ====================
+
+      let batchQueue = [];
+
+      /**
+       * Toggles batch panel visibility
+       */
+      function toggleBatchPanel() {
+        const panel = document.getElementById('batch-panel');
+        const isVisible = panel.style.display !== 'none';
+        panel.style.display = isVisible ? 'none' : 'block';
+      }
+
+      /**
+       * Adds operation to batch queue
+       */
+      function addToBatch(operation) {
+        // Validate operation
+        if (!operation.tool || !operation.action || !operation.label) {
+          console.error('Invalid operation:', operation);
+          return false;
+        }
+
+        // Add to queue
+        batchQueue.push({
+          id: Date.now() + Math.random(),
+          tool: operation.tool,
+          action: operation.action,
+          params: operation.params || {},
+          label: operation.label,
+          icon: operation.icon || '📋',
+        });
+
+        updateBatchUI();
+        showBatchToggle();
+        addMessage(`📦 Added to batch: ${operation.label}`, 'system');
+        return true;
+      }
+
+      /**
+       * Removes operation from batch queue
+       */
+      function removeFromBatch(id) {
+        batchQueue = batchQueue.filter((op) => op.id !== id);
+        updateBatchUI();
+        if (batchQueue.length === 0) {
+          hideBatchToggle();
+        }
+      }
+
+      /**
+       * Clears all operations from batch
+       */
+      function clearBatch() {
+        if (batchQueue.length === 0) return;
+
+        if (confirm(`Clear all ${batchQueue.length} operation(s)?`)) {
+          batchQueue = [];
+          updateBatchUI();
+          hideBatchToggle();
+          addMessage('📦 Batch cleared', 'system');
+        }
+      }
+
+      /**
+       * Updates batch UI with current queue
+       */
+      function updateBatchUI() {
+        const queueEl = document.getElementById('batch-queue');
+        const countEl = document.getElementById('batch-count');
+        const toggleCountEl = document.getElementById('batch-toggle-count');
+        const executeBtn = document.getElementById('batch-execute-btn');
+
+        // Update counts
+        const count = batchQueue.length;
+        countEl.textContent = `(${count})`;
+        toggleCountEl.textContent = count;
+
+        // Update execute button
+        executeBtn.disabled = count === 0;
+
+        // Update queue display
+        if (count === 0) {
+          queueEl.innerHTML = `
+          <div class="batch-empty">
+            <p>No operations queued</p>
+            <p class="batch-empty-hint">Hold Shift while clicking actions to add them to the batch</p>
+          </div>
+        `;
+        } else {
+          queueEl.innerHTML = batchQueue
+            .map(
+              (op) => `
+          <div class="batch-item">
+            <span class="batch-item-icon">${op.icon}</span>
+            <div class="batch-item-content">
+              <div class="batch-item-label">${op.label}</div>
+              <div class="batch-item-params">${op.tool} → ${op.action}</div>
+            </div>
+            <button class="batch-item-remove" onclick="removeFromBatch(${op.id})">×</button>
+          </div>
+        `
+            )
+            .join('');
+        }
+      }
+
+      /**
+       * Shows batch toggle button
+       */
+      function showBatchToggle() {
+        document.getElementById('batch-toggle').style.display = 'block';
+      }
+
+      /**
+       * Hides batch toggle button
+       */
+      function hideBatchToggle() {
+        document.getElementById('batch-toggle').style.display = 'none';
+        document.getElementById('batch-panel').style.display = 'none';
+      }
+
+      /**
+       * Executes all operations in batch atomically
+       */
+      function executeBatchOperations() {
+        if (batchQueue.length === 0) return;
+
+        const count = batchQueue.length;
+        if (
+          !confirm(
+            `Execute ${count} operation(s) atomically?\n\nAll operations will succeed or fail together.`
+          )
+        ) {
+          return;
+        }
+
+        showLoading();
+        setProcessing(true);
+
+        // Close batch panel
+        document.getElementById('batch-panel').style.display = 'none';
+
+        addMessage(`🚀 Executing ${count} operation(s) in batch...`, 'system');
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            setProcessing(false);
+
+            if (result.success) {
+              addMessage(`✅ Batch executed successfully!`, 'ai');
+              addMessage(`📊 Completed ${count} operation(s)`, 'system');
+
+              // Clear batch on success
+              batchQueue = [];
+              updateBatchUI();
+              hideBatchToggle();
+            } else {
+              const completed = result.error?.completedOperations || 0;
+              const total = result.error?.totalOperations || count;
+              addMessage(`❌ Batch execution failed: ${result.error?.message}`, 'error');
+              addMessage(
+                `📊 Completed ${completed}/${total} operation(s) before failure`,
+                'system'
+              );
+              addMessage(`🔄 All changes have been rolled back`, 'system');
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            setProcessing(false);
+            addMessage(`❌ Batch execution error: ${error.message}`, 'error');
+          })
+          .executeBatch(batchQueue);
+      }
+
+      /**
+       * Detects if Shift key is held during action click
+       * Returns true if should add to batch, false if should execute immediately
+       */
+      function shouldAddToBatch(event) {
+        return event && event.shiftKey;
+      }
+
+      // ==================== Phase 3.3: Action History & Undo ====================
+
+      /**
+       * Toggles history panel visibility
+       */
+      function toggleHistoryPanel() {
+        const panel = document.getElementById('history-panel');
+        const isVisible = panel.style.display !== 'none';
+
+        if (isVisible) {
+          panel.style.display = 'none';
+        } else {
+          panel.style.display = 'block';
+          refreshHistory();
+        }
+      }
+
+      /**
+       * Refreshes operation history display
+       */
+      function refreshHistory() {
+        const listEl = document.getElementById('history-list');
+        listEl.innerHTML = '<div class="history-loading">Loading history...</div>';
+
+        google.script.run
+          .withSuccessHandler(displayHistory)
+          .withFailureHandler(function (error) {
+            listEl.innerHTML = '<div class="history-error">Failed to load history</div>';
+            console.error('History error:', error);
+          })
+          .getOperationHistory(10);
+      }
+
+      /**
+       * Displays operation history
+       */
+      function displayHistory(result) {
+        const listEl = document.getElementById('history-list');
+        const undoLastBtn = document.getElementById('history-undo-last-btn');
+
+        if (!result.success) {
+          listEl.innerHTML =
+            '<div class="history-error">Error: ' +
+            (result.error?.message || 'Unknown error') +
+            '</div>';
+          undoLastBtn.disabled = true;
+          return;
+        }
+
+        const operations = result.response?.operations || [];
+
+        if (operations.length === 0) {
+          listEl.innerHTML = `
+          <div class="history-empty">
+            <p>No operations yet</p>
+            <p class="history-empty-hint">Operations will appear here as you use the add-on</p>
+          </div>
+        `;
+          undoLastBtn.disabled = true;
+          return;
+        }
+
+        // Enable undo last button if we have operations
+        undoLastBtn.disabled = false;
+
+        // Build history items
+        listEl.innerHTML = operations
+          .map((op) => {
+            const icon = getOperationIcon(op.tool);
+            const timeStr = formatTimeAgo(op.timestamp);
+            const canRevert = !!op.snapshotId && op.success !== false;
+
+            return `
+          <div class="history-item">
+            <div class="history-item-header">
+              <span class="history-item-icon">${icon}</span>
+              <span class="history-item-title">${op.description || op.action}</span>
+              <span class="history-item-time">${timeStr}</span>
+            </div>
+            <div class="history-item-details">${op.tool} → ${op.action}</div>
+            ${
+              canRevert
+                ? `
+              <div class="history-item-actions">
+                <button class="history-undo-btn" onclick="revertToOperationById('${op.id}')">
+                  ↶ Revert to Here
+                </button>
+              </div>
+            `
+                : ''
+            }
+          </div>
+        `;
+          })
+          .join('');
+      }
+
+      /**
+       * Gets icon for operation tool
+       */
+      function getOperationIcon(tool) {
+        const iconMap = {
+          sheets_data: '📋',
+          sheets_format: '🎨',
+          sheets_dimensions: '📐',
+          sheets_core: '📂',
+          sheets_collaborate: '👥',
+          sheets_visualize: '📈',
+          sheets_analyze: '🔍',
+          sheets_transaction: '🔄',
+          sheets_history: '🕐',
+        };
+        return iconMap[tool] || '📝';
+      }
+
+      /**
+       * Formats timestamp as relative time
+       */
+      function formatTimeAgo(timestamp) {
+        if (!timestamp) return 'Just now';
+
+        const now = Date.now();
+        const then = typeof timestamp === 'number' ? timestamp : new Date(timestamp).getTime();
+        const diff = now - then;
+
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+        return Math.floor(diff / 86400000) + 'd ago';
+      }
+
+      /**
+       * Undoes a specific operation by ID
+       */
+      function revertToOperationById(operationId) {
+        if (!confirm('Revert the sheet to the state before this operation?')) return;
+
+        showLoading();
+        setProcessing(true);
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            setProcessing(false);
+
+            if (result.success) {
+              addMessage('✅ Spreadsheet reverted to the selected history point', 'ai');
+              refreshHistory();
+            } else {
+              addMessage(
+                '❌ Failed to revert: ' + (result.error?.message || 'Unknown error'),
+                'error'
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            setProcessing(false);
+            addMessage('❌ Revert error: ' + error.message, 'error');
+          })
+          .revertToOperation(operationId, false);
+      }
+
+      /**
+       * Undoes the last operation
+       */
+      function undoLast() {
+        if (!confirm('Undo the last operation?')) return;
+
+        showLoading();
+        setProcessing(true);
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            setProcessing(false);
+
+            if (result.success) {
+              addMessage('✅ Last operation undone', 'ai');
+              refreshHistory();
+            } else {
+              addMessage(
+                '❌ Failed to undo: ' + (result.error?.message || 'Unknown error'),
+                'error'
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            setProcessing(false);
+            addMessage('❌ Undo error: ' + error.message, 'error');
+          })
+          .undoLastOperations(1);
+      }
+
+      // ==================== Phase 3.4: Preview Mode ====================
+
+      let previewModeEnabled = false;
+      let pendingOperation = null;
+
+      /**
+       * Toggles preview mode on/off
+       */
+      function togglePreviewMode() {
+        previewModeEnabled = !previewModeEnabled;
+
+        const toggleEl = document.getElementById('preview-mode-toggle');
+        const switchEl = document.getElementById('preview-switch');
+        const labelEl = document.getElementById('preview-toggle-label');
+
+        if (previewModeEnabled) {
+          toggleEl.classList.add('active');
+          switchEl.classList.add('active');
+          labelEl.classList.add('active');
+          addMessage('👁️ Preview mode enabled - operations will show preview first', 'system');
+        } else {
+          toggleEl.classList.remove('active');
+          switchEl.classList.remove('active');
+          labelEl.classList.remove('active');
+          addMessage('👁️ Preview mode disabled', 'system');
+        }
+
+        // Save preference
+        google.script.run
+          .withFailureHandler(function (error) {
+            console.error('Failed to save preview mode:', error);
+          })
+          .setPreviewMode(previewModeEnabled);
+      }
+
+      /**
+       * Shows preview modal with operation details
+       */
+      function showPreviewModal(operation, previewResult) {
+        const modal = document.getElementById('preview-modal');
+        const body = document.getElementById('preview-dialog-body');
+
+        // Store pending operation for later execution
+        pendingOperation = operation;
+
+        // Build preview display
+        let html = '';
+
+        // Warning message
+        html += `
+        <div class="preview-warning">
+          <span class="preview-warning-icon">⚠️</span>
+          <div class="preview-warning-text">
+            This is a preview. No changes have been made yet.
+            Review the details below and click "Execute" to proceed.
+          </div>
+        </div>
+      `;
+
+        // Operation details
+        html += `
+        <div class="preview-section">
+          <div class="preview-section-title">Operation</div>
+          <div class="preview-section-content">
+            <strong>${operation.tool}</strong> → ${operation.action}
+          </div>
+        </div>
+      `;
+
+        // Preview result
+        if (previewResult.success && previewResult.response) {
+          const preview = previewResult.response.wouldDo || previewResult.response;
+
+          html += `
+          <div class="preview-section">
+            <div class="preview-section-title">What will happen</div>
+            <div class="preview-section-content preview-code">${JSON.stringify(preview, null, 2)}</div>
+          </div>
+        `;
+        } else {
+          html += `
+          <div class="preview-section">
+            <div class="preview-section-title">Error</div>
+            <div class="preview-section-content" style="color: #d32f2f;">
+              ${previewResult.error?.message || 'Preview failed'}
+            </div>
+          </div>
+        `;
+        }
+
+        body.innerHTML = html;
+        modal.classList.add('visible');
+      }
+
+      /**
+       * Closes preview modal
+       */
+      function closePreviewModal() {
+        const modal = document.getElementById('preview-modal');
+        modal.classList.remove('visible');
+        pendingOperation = null;
+      }
+
+      /**
+       * Executes operation after preview confirmation
+       */
+      function executeAfterPreview() {
+        if (!pendingOperation) {
+          console.error('No pending operation');
+          return;
+        }
+
+        closePreviewModal();
+        addMessage(`🚀 Executing: ${pendingOperation.label}`, 'system');
+
+        // Execute without dry run flag
+        const operation = pendingOperation;
+        pendingOperation = null;
+
+        showLoading();
+        setProcessing(true);
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            setProcessing(false);
+
+            if (result.success) {
+              addMessage('✅ Operation completed successfully', 'ai');
+            } else {
+              addMessage(
+                '❌ Operation failed: ' + (result.error?.message || 'Unknown error'),
+                'error'
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            setProcessing(false);
+            addMessage('❌ Execution error: ' + error.message, 'error');
+          })
+          .callServalSheets(operation.tool, operation.request);
+      }
+
+      /**
+       * Checks if preview mode is active and shows preview if needed
+       * Returns true if preview is shown, false if should execute immediately
+       */
+      function checkPreviewMode(operation, callback) {
+        if (!previewModeEnabled) {
+          // Preview mode disabled - execute immediately
+          callback();
+          return false;
+        }
+
+        // Preview mode enabled - show preview first
+        addMessage(`👁️ Generating preview for: ${operation.label}`, 'system');
+        showLoading();
+
+        google.script.run
+          .withSuccessHandler(function (previewResult) {
+            hideLoading();
+            showPreviewModal(operation, previewResult);
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            addMessage('❌ Preview error: ' + error.message, 'error');
+            // On preview error, ask if user wants to proceed anyway
+            if (confirm('Preview failed. Execute anyway?')) {
+              callback();
+            }
+          })
+          .previewOperation(operation.tool, operation.request);
+
+        return true;
+      }
+
+      /**
+       * Load preview mode state on startup
+       */
+      window.addEventListener('load', function () {
+        google.script.run
+          .withSuccessHandler(function (enabled) {
+            if (enabled) {
+              // Simulate toggle to set UI state
+              previewModeEnabled = false;
+              togglePreviewMode();
+            }
+          })
+          .isPreviewModeEnabled();
+      });
+
+      function sendMessage() {
+        const prompt = promptInput.value.trim();
+        if (!prompt || isProcessing) return;
+
+        // Clear empty state
+        const emptyState = chat.querySelector('.empty-state');
+        if (emptyState) {
+          emptyState.remove();
+        }
+
+        addMessage(prompt, 'user');
+        promptInput.value = '';
+        promptInput.style.height = 'auto';
+
+        showLoading();
+        setProcessing(true);
+
+        // Call Apps Script function
+        google.script.run
+          .withSuccessHandler(handleResponse)
+          .withFailureHandler(handleError)
+          .analyzeData(prompt);
+      }
+
+      function handleResponse(result) {
+        hideLoading();
+        setProcessing(false);
+
+        if (!result) {
+          addMessage('No response from server', 'error');
+          return;
+        }
+
+        if (result.success === false) {
+          const errorMsg = result.error?.message || 'Unknown error';
+          addMessage(errorMsg, 'error');
+
+          // Show special messages for common errors
+          if (result.error?.code === 'NO_API_KEY') {
+            addMessage('💡 Tip: Click ServalSheets > Settings to configure your API key', 'ai');
+          } else if (result.error?.code === 'QUOTA_EXCEEDED') {
+            showQuotaStatus('Monthly quota exceeded. Upgrade your plan to continue.', 'error');
+          }
+          return;
+        }
+
+        // Handle suggest_next_actions rich output
+        const suggestions = result.response?.suggestions;
+        if (suggestions && Array.isArray(suggestions) && suggestions.length > 0) {
+          renderSuggestionsPanel(suggestions);
+          return;
+        }
+
+        // Extract response text
+        let responseText = '';
+        if (result.response?.analysis) {
+          responseText = result.response.analysis;
+        } else if (result.response?.text) {
+          responseText = result.response.text;
+        } else if (typeof result.response === 'string') {
+          responseText = result.response;
+        } else {
+          responseText = JSON.stringify(result.response, null, 2);
+        }
+
+        const bubble = addMessage(responseText, 'ai');
+
+        // Show data quality warnings if present (injected by applyResponseIntelligence)
+        const warnings = result.response?.dataQualityWarnings || result.dataQualityWarnings;
+        if (warnings && warnings.length > 0) {
+          renderQualityWarnings(warnings, bubble);
+        }
+
+        // Show _truncated hint if response was compacted
+        const truncated = result.response?._truncated || result._truncated;
+        if (truncated) {
+          renderTruncatedHints(truncated, bubble);
+        }
+
+        // Show quota warning if present
+        if (result.response?.quotaWarning) {
+          showQuotaStatus(result.response.quotaWarning.message, 'warning');
+        }
+      }
+
+      function handleError(error) {
+        hideLoading();
+        setProcessing(false);
+        addMessage(`Error: ${error.message}`, 'error');
+      }
+
+      function getMessageLabel(type) {
+        if (type === 'user') return 'You';
+        if (type === 'warning') return 'Warning';
+        if (type === 'system') return 'System';
+        if (type === 'error') return 'Error';
+        return 'ServalSheets AI';
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function encodeActionSpec(actionSpec) {
+        return escapeHtml(JSON.stringify(actionSpec));
+      }
+
+      function renderQualityWarnings(warnings, bubble) {
+        if (!bubble || !Array.isArray(warnings) || warnings.length === 0) return;
+
+        const container = document.createElement('div');
+        container.className = 'quality-warnings-container';
+
+        const badge = document.createElement('div');
+        badge.className = 'quality-badge';
+        badge.textContent =
+          '⚠️ ' +
+          warnings.length +
+          ' data quality issue' +
+          (warnings.length === 1 ? '' : 's') +
+          ' detected';
+        badge.onclick = function () {
+          toggleQualityDetails(badge);
+        };
+
+        const list = document.createElement('ul');
+        list.className = 'quality-list';
+
+        warnings.forEach(function (warning) {
+          var normalizedWarning =
+            typeof warning === 'string'
+              ? { detail: warning, severity: 'warning' }
+              : warning;
+          const item = document.createElement('li');
+          item.className = 'quality-item quality-' + (normalizedWarning.severity || 'warning');
+
+          const label = document.createElement('strong');
+          label.textContent = normalizedWarning.column || normalizedWarning.type || 'Sheet';
+          item.appendChild(label);
+
+          const detail = document.createElement('span');
+          detail.textContent = ': ' + (normalizedWarning.detail || '');
+          item.appendChild(detail);
+
+          if (normalizedWarning.fixAction) {
+            const button = document.createElement('button');
+            button.className = 'quality-fix-btn';
+            button.textContent = 'Fix';
+            button.setAttribute('data-action', encodeActionSpec(normalizedWarning.fixAction));
+            button.onclick = function () {
+              applyQualityFix(button);
+            };
+            item.appendChild(button);
+          }
+
+          list.appendChild(item);
+        });
+
+        container.appendChild(badge);
+        container.appendChild(list);
+        bubble.appendChild(container);
+      }
+
+      function toggleQualityDetails(badge) {
+        const list = badge && badge.nextElementSibling;
+        if (!list) return;
+        list.style.display = list.style.display === 'block' ? 'none' : 'block';
+      }
+
+      function renderTruncatedHints(truncated, bubble) {
+        if (!bubble) return;
+
+        if (truncated && typeof truncated === 'object' && !Array.isArray(truncated)) {
+          Object.keys(truncated).forEach(function (key) {
+            const chip = document.createElement('span');
+            chip.className = 'truncated-chip';
+            chip.textContent = 'ℹ️ ' + key + ': ' + truncated[key];
+            bubble.appendChild(chip);
+          });
+          return;
+        }
+
+        const chip = document.createElement('span');
+        chip.className = 'truncated-chip';
+        chip.textContent = 'ℹ️ Response was compacted for display.';
+        bubble.appendChild(chip);
+      }
+
+      function executeStructuredAction(button, workingLabel, doneLabel) {
+        const originalLabel = button.textContent;
+        const action = JSON.parse(button.getAttribute('data-action'));
+        button.disabled = true;
+        button.textContent = workingLabel;
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success === false) {
+              button.disabled = false;
+              button.textContent = originalLabel;
+            } else {
+              button.textContent = doneLabel;
+            }
+            handleResponse(result);
+          })
+          .withFailureHandler(function (error) {
+            button.disabled = false;
+            button.textContent = originalLabel;
+            handleError(error);
+          })
+          .executeToolAction(action);
+      }
+
+      function applyQualityFix(button) {
+        executeStructuredAction(button, 'Fixing...', 'Fixed ✓');
+      }
+
+      function addMessage(text, type) {
+        const message = document.createElement('div');
+        message.className = `message ${type}-message`;
+
+        const label = document.createElement('div');
+        label.className = 'message-label';
+        label.textContent = getMessageLabel(type);
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.textContent = text;
+
+        message.appendChild(label);
+        message.appendChild(bubble);
+        chat.appendChild(message);
+
+        // Scroll to bottom
+        chat.scrollTop = chat.scrollHeight;
+        return bubble;
+      }
+
+      function showLoading() {
+        const loading = document.createElement('div');
+        loading.id = 'loading-indicator';
+        loading.className = 'message ai-message';
+        loading.innerHTML = `
+        <div class="message-label">ServalSheets AI</div>
+        <div class="loading">
+          <span>Thinking</span>
+          <div class="loading-dots">
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+          </div>
+        </div>
+      `;
+        chat.appendChild(loading);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function hideLoading() {
+        const loading = document.getElementById('loading-indicator');
+        if (loading) {
+          loading.remove();
+        }
+      }
+
+      function setProcessing(processing) {
+        isProcessing = processing;
+        sendButton.disabled = processing;
+        promptInput.disabled = processing;
+      }
+
+      function showQuotaStatus(message, type) {
+        const status = document.getElementById('quota-status');
+        status.textContent = message;
+        status.className = `quota-status ${type}`;
+        status.style.display = 'block';
+      }
+
+      // Check connection on load and periodically
+      function checkApiConnection() {
+        google.script.run
+          .withSuccessHandler(function (isOnline) {
+            if (!isOnline) {
+              showQuotaStatus(
+                '⚠️ Cannot connect to ServalSheets API. Check your internet connection or settings.',
+                'error'
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            showQuotaStatus(
+              '⚠️ Connection check failed. You may be offline or the API is unreachable.',
+              'error'
+            );
+          })
+          .checkConnection();
+      }
+
+      // ── Rich Suggestions Panel ────────────────────────────────────────────
+      function renderSuggestionsPanel(suggestions) {
+        var html = '<div class="sugg-panel">' +
+          '<div class="sugg-header">💡 Smart Suggestions</div>' +
+          suggestions.slice(0, 8).map(function(s, i) {
+            var confidence = s.confidence ? Math.round(s.confidence * 100) + '%' : '';
+            var actionAttr = s.action ? 'data-action=\'' + encodeActionSpec(s.action) + '\'' : '';
+            return '<div class="sugg-card">' +
+              '<div class="sugg-title">' + escapeHtml(s.title || ('Suggestion ' + (i + 1))) + '</div>' +
+              '<div class="sugg-desc">' + escapeHtml(s.description || '') + '</div>' +
+              '<div class="sugg-meta">' +
+                (confidence ? '<span class="sugg-conf">' + confidence + ' confidence</span>' : '<span></span>') +
+                (actionAttr ? '<button class="sugg-apply" ' + actionAttr + ' onclick="applySuggestionCard(this)">Apply</button>' : '') +
+              '</div>' +
+            '</div>';
+          }).join('') +
+          '</div>';
+        addMessageHtml(html, 'ai');
+      }
+
+      function applySuggestionCard(btn) {
+        executeStructuredAction(btn, 'Applying...', 'Applied ✓');
+      }
+
+      function addMessageHtml(html, type) {
+        var message = document.createElement('div');
+        message.className = 'message ' + type + '-message';
+        var label = document.createElement('div');
+        label.className = 'message-label';
+        label.textContent = getMessageLabel(type);
+        var bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.innerHTML = html;
+        message.appendChild(label);
+        message.appendChild(bubble);
+        chat.appendChild(message);
+        chat.scrollTop = chat.scrollHeight;
+        return bubble;
+      }
+
+      // ── New Quick Action Handlers ─────────────────────────────────────────
+      function quickAction_suggestNext() {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function(result) { hideLoading(); handleResponse(result); })
+          .withFailureHandler(function(err) { hideLoading(); addMessage(err.message, 'error'); })
+          .suggestNextActions(null);
+      }
+
+      function quickAction_buildDashboard() {
+        var dataSheet = prompt('Data sheet name (for example: Sales Data)');
+        if (!dataSheet) return;
+
+        var layout =
+          prompt('Layout: kpi_header | full_analytics | executive_summary', 'full_analytics') ||
+          'full_analytics';
+        var dashboardSheet = prompt('Dashboard sheet name', 'Dashboard') || 'Dashboard';
+
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            handleResponse(result);
+          })
+          .withFailureHandler(function (err) {
+            hideLoading();
+            addMessage(err.message, 'error');
+          })
+          .buildDashboard(null, dataSheet, layout, dashboardSheet, []);
+      }
+
+      function quickAction_runAgent() {
+        var goal = prompt('Describe what you want done autonomously (e.g. "Clean all data, add summary row, create chart"):');
+        if (!goal) return;
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function(result) {
+            hideLoading();
+            addMessage('Agent plan created:\n' + JSON.stringify(result.response, null, 2), 'ai');
+          })
+          .withFailureHandler(function(err) { hideLoading(); addMessage(err.message, 'error'); })
+          .runAgentPlan(null, goal, 10);
+      }
+
+      function quickAction_compute() {
+        var operation = prompt(
+          'Compute operation: statistical | aggregate | evaluate | regression | forecast | sql_query | python_eval',
+          'statistical'
+        );
+        if (!operation) return;
+
+        operation = operation.trim();
+        showLoading();
+
+        var runner = google.script.run
+          .withSuccessHandler(function(result) { hideLoading(); handleResponse(result); })
+          .withFailureHandler(function(err) { hideLoading(); addMessage(err.message, 'error'); });
+
+        if (operation === 'statistical') {
+          var statsRange = prompt('Range to analyze (e.g. Sheet1!A2:D100):');
+          if (!statsRange) {
+            hideLoading();
+            return;
+          }
+          runner.computeStatistics(null, statsRange);
+          return;
+        }
+
+        if (operation === 'aggregate') {
+          var aggregateRange = prompt('Range to aggregate (e.g. Sheet1!B2:B100):');
+          if (!aggregateRange) {
+            hideLoading();
+            return;
+          }
+          var fnInput = prompt('Functions (comma-separated: sum, average, count, min, max)', 'sum');
+          var functions = (fnInput || 'sum')
+            .split(',')
+            .map(function(value) { return value.trim(); })
+            .filter(function(value) { return value.length > 0; });
+          runner.computeAggregate(null, aggregateRange, functions);
+          return;
+        }
+
+        if (operation === 'evaluate') {
+          var formula = prompt('Formula to evaluate (e.g. =SUM(A2:A10))');
+          if (!formula) {
+            hideLoading();
+            return;
+          }
+          var contextRange = prompt('Context range for relative refs (optional)', '') || null;
+          runner.evaluateExpression(null, formula, contextRange);
+          return;
+        }
+
+        if (operation === 'regression') {
+          var regressionRange = prompt('Range containing X and Y columns (e.g. Sheet1!A1:B100):');
+          var xColumn = prompt('X column (letter or header)', 'A');
+          var yColumn = prompt('Y column (letter or header)', 'B');
+          var regressionType = prompt('Type: linear | polynomial | exponential | logarithmic | power', 'linear') || 'linear';
+          if (!regressionRange || !xColumn || !yColumn) {
+            hideLoading();
+            return;
+          }
+          runner.computeRegression(null, regressionRange, xColumn, yColumn, regressionType);
+          return;
+        }
+
+        if (operation === 'forecast') {
+          var forecastRange = prompt('Time-series range (e.g. Sheet1!A1:B100):');
+          var dateColumn = prompt('Date column', 'A');
+          var valueColumn = prompt('Value column', 'B');
+          var periods = parseInt(prompt('Forecast periods', '3') || '3', 10);
+          if (!forecastRange || !dateColumn || !valueColumn) {
+            hideLoading();
+            return;
+          }
+          runner.computeForecast(null, forecastRange, dateColumn, valueColumn, periods || 3);
+          return;
+        }
+
+        if (operation === 'sql_query') {
+          var tableRange = prompt('Source range (e.g. Sheet1!A1:D100):');
+          var tableName = prompt('SQL table alias', 'data') || 'data';
+          var sql = prompt('SQL query', 'SELECT * FROM data LIMIT 10');
+          if (!tableRange || !sql) {
+            hideLoading();
+            return;
+          }
+          runner.computeSqlQuery(null, [{ name: tableName, range: tableRange, hasHeaders: true }], sql);
+          return;
+        }
+
+        if (operation === 'python_eval') {
+          var pythonRange = prompt('Source range (e.g. Sheet1!A1:D100):');
+          var code = prompt('Python code (data and df are available)', 'len(data)');
+          if (!pythonRange || !code) {
+            hideLoading();
+            return;
+          }
+          runner.computePythonEval(null, pythonRange, code, true);
+          return;
+        }
+
+        hideLoading();
+        addMessage('Unsupported compute operation. Use one of: statistical, aggregate, evaluate, regression, forecast, sql_query, python_eval.', 'warning');
+      }
+
+      function quickAction_liveData() {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function(result) {
+            hideLoading();
+            if (result && result.response && result.response.connectors) {
+              var list = result.response.connectors.map(function(c) { return c.id + ': ' + c.name; }).join('\n');
+              addMessage('Available data connectors:\n' + list, 'ai');
+            } else {
+              handleResponse(result);
+            }
+          })
+          .withFailureHandler(function(err) { hideLoading(); addMessage(err.message, 'error'); })
+          .listConnectors();
+      }
+
+      // Test connection on load
+      window.addEventListener('load', function () {
+        // Check connection immediately
+        checkApiConnection();
+
+        // Also run existing test connection
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (!result.success) {
+              showQuotaStatus(result.message, 'error');
+            }
+          })
+          .withFailureHandler(function (error) {
+            showQuotaStatus('Unable to connect to ServalSheets API. Check settings.', 'error');
+          })
+          .testConnection();
+      });
+    </script>
+  </body>
+</html>

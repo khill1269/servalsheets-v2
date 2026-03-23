@@ -1,0 +1,185 @@
+name: 106-Category Audit
+
+on:
+  schedule:
+    # Run every Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+
+  pull_request:
+    branches: [main]
+
+  workflow_dispatch:
+    inputs:
+      score_threshold:
+        description: 'Minimum audit score threshold (%)'
+        required: false
+        default: 130
+        type: number
+
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: audit-106-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+  AUDIT_OUTPUT_DIR: 'audit-output'
+
+jobs:
+  audit:
+    name: Run 106-Category Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create audit output directory
+        run: mkdir -p ${{ env.AUDIT_OUTPUT_DIR }}
+
+      - name: Run full 106-category audit
+        id: audit
+        run: |
+          npm run audit:full
+          echo "Audit completed. Checking results..."
+
+          # Extract score from results
+          if [ -f "${{ env.AUDIT_OUTPUT_DIR }}/results.json" ]; then
+            SCORE=$(node -p "require('./${{ env.AUDIT_OUTPUT_DIR }}/results.json').total_percentage")
+            echo "audit_score=$SCORE" >> $GITHUB_OUTPUT
+            echo "✅ Audit score: ${SCORE}%"
+          else
+            echo "❌ Audit results file not found"
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Validate audit score threshold
+        if: steps.audit.outcome == 'success'
+        run: |
+          THRESHOLD=${{ inputs.score_threshold || 130 }}
+          SCORE=${{ steps.audit.outputs.audit_score }}
+
+          echo "Score: ${SCORE}%"
+          echo "Threshold: ${THRESHOLD}%"
+
+          if node -e "process.exit(parseFloat('$SCORE') < parseFloat('$THRESHOLD') ? 1 : 0)"; then
+            echo "✅ Audit score meets threshold: ${SCORE}% ≥ ${THRESHOLD}%"
+          else
+            echo "❌ Audit score below threshold: ${SCORE}% < ${THRESHOLD}%"
+            echo "::error::Audit score (${SCORE}%) is below the required threshold (${THRESHOLD}%)"
+            exit 1
+          fi
+
+      - name: Generate audit report
+        if: always()
+        continue-on-error: true
+        run: |
+          npm run audit:report
+
+          if [ -f "${{ env.AUDIT_OUTPUT_DIR }}/REPORT.md" ]; then
+            echo "✅ Audit report generated"
+
+            # Show summary
+            echo "## Audit Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            head -n 50 "${{ env.AUDIT_OUTPUT_DIR }}/REPORT.md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Audit report not generated"
+            echo "## Audit Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ steps.audit.outcome }}" = "failure" ]; then
+              echo "❌ Audit failed — no report generated. Check job logs for details." >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ Report file not found after audit run." >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: audit-results-${{ github.run_number }}
+          path: |
+            ${{ env.AUDIT_OUTPUT_DIR }}/results.json
+            ${{ env.AUDIT_OUTPUT_DIR }}/REPORT.md
+            ${{ env.AUDIT_OUTPUT_DIR }}/evidence/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Check for critical issues
+        if: steps.audit.outcome == 'success'
+        run: |
+          # Check for P0 critical issues
+          P0_COUNT=$(node -p "require('./${{ env.AUDIT_OUTPUT_DIR }}/results.json').issues.filter(i => i.priority === 'P0').length")
+
+          if [ "$P0_COUNT" -gt 0 ]; then
+            echo "::warning::Found $P0_COUNT critical P0 issues"
+            echo "⚠️ $P0_COUNT critical issues require immediate attention"
+          else
+            echo "✅ No critical P0 issues found"
+          fi
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request' && steps.audit.outcome == 'success'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('${{ env.AUDIT_OUTPUT_DIR }}/results.json', 'utf8'));
+
+            const score = results.total_percentage;
+            const issues = results.issues || [];
+            const p0 = issues.filter(i => i.priority === 'P0').length;
+            const p1 = issues.filter(i => i.priority === 'P1').length;
+
+            const comment = `## 📊 106-Category Audit Results
+
+            **Overall Score:** ${score}%
+
+            **Issues by Priority:**
+            - P0 (Critical): ${p0}
+            - P1 (High): ${p1}
+            - P2 (Medium): ${issues.filter(i => i.priority === 'P2').length}
+            - P3 (Low): ${issues.filter(i => i.priority === 'P3').length}
+
+            ${p0 > 0 ? '⚠️ **Action Required:** Critical issues found that must be addressed.' : '✅ No critical issues'}
+
+            [View Full Report](../actions/runs/${{ github.run_id }})
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Audit completion status
+        if: always()
+        run: |
+          if [ "${{ steps.audit.outcome }}" = "success" ]; then
+            echo "✅ Audit completed successfully"
+            echo "Score: ${{ steps.audit.outputs.audit_score }}%"
+          else
+            echo "❌ Audit failed or encountered errors"
+            exit 1
+          fi

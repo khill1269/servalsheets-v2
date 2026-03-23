@@ -1,0 +1,123 @@
+name: Mutation Testing
+
+on:
+  # Run on PRs to main to catch weak tests before merge
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+  # Manual trigger for full run or specific configs
+  workflow_dispatch:
+    inputs:
+      config:
+        description: 'Stryker config to run'
+        required: true
+        default: 'critical'
+        type: choice
+        options:
+          - critical
+          - minimal
+          - full
+
+permissions:
+  contents: read
+  issues: write
+
+# Only one mutation run at a time — they're expensive
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  mutation-critical:
+    name: Mutation Tests (critical paths)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Only run on PRs or manual triggers (expensive — skip routine pushes)
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run critical-path mutation tests
+        run: |
+          CONFIG="${{ github.event.inputs.config || 'critical' }}"
+          if [ "$CONFIG" = "full" ]; then
+            npm run test:mutation
+          elif [ "$CONFIG" = "minimal" ]; then
+            npm run test:mutation:minimal
+          else
+            npm run test:mutation:critical
+          fi
+        env:
+          # Increase heap for Stryker's parallel workers
+          NODE_OPTIONS: '--max-old-space-size=4096'
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mutation-report-${{ github.sha }}
+          path: |
+            reports/mutation/
+            .stryker-tmp/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Comment mutation score on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const reportPath = 'reports/mutation/mutation.json';
+            if (!fs.existsSync(reportPath)) {
+              console.log('No mutation report found — skipping comment');
+              return;
+            }
+
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+            const score = report.mutationScore ?? report.metrics?.mutationScore ?? 'N/A';
+            const killed = report.killed ?? report.metrics?.killed ?? '?';
+            const survived = report.survived ?? report.metrics?.survived ?? '?';
+            const total = report.totalDetected ?? (typeof killed === 'number' && typeof survived === 'number' ? killed + survived : '?');
+
+            const emoji = typeof score === 'number'
+              ? score >= 80 ? '✅' : score >= 60 ? '⚠️' : '❌'
+              : 'ℹ️';
+
+            const comment = `## ${emoji} Mutation Testing Results
+
+            | Metric | Value |
+            |--------|-------|
+            | **Mutation Score** | ${typeof score === 'number' ? score.toFixed(1) + '%' : score} |
+            | **Killed** | ${killed} |
+            | **Survived** | ${survived} |
+            | **Total Mutants** | ${total} |
+
+            ${typeof score === 'number' && score < 60 ? '> ⚠️ Mutation score is below 60% — consider adding tests for the surviving mutants.' : ''}
+
+            *Full report available in [workflow artifacts](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})*`;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });

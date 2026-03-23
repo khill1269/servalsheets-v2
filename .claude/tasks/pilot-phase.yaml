@@ -1,0 +1,31 @@
+# Pilot Phase - Agent Team Coordination Test
+
+phase:
+  number: 0
+  name: 'Pilot Test'
+  goal: 'Verify agent team coordination works correctly'
+  duration_weeks: 1
+
+tasks:
+  - id: pilot-001
+    title: 'Design: Simple Cache Test'
+    description: 'Design a simple cache invalidation rule for read_range action'
+    owner: null
+    status: PENDING
+    priority: HIGH
+    estimated_hours: 2
+    dependencies: []
+    deliverables:
+      - 'docs/design/cache-test.md'
+    acceptance_criteria:
+      - 'Document has invalidation rule'
+      - 'Example code included'
+      - 'Integration points identified'
+    labels: ['design', 'pilot', 'cache']
+
+metadata:
+  total_tasks: 1
+  estimated_hours: 2
+  dependencies_resolved: true
+  critical_path:
+    - 'pilot-001'

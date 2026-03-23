@@ -1,0 +1,101 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Run in dry-run mode'
+        required: false
+        default: 'false'
+
+jobs:
+  publish:
+    name: Publish Package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for uploading SBOM to GitHub release
+      id-token: write # Required for npm provenance + cosign keyless signing
+      attestations: write
+      artifact-metadata: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Release readiness gate
+        run: npm run verify:release
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test -- --run
+
+      - name: Build
+        run: npm run build
+
+      - name: Pack release artifact
+        id: pack
+        run: |
+          npm pack --json > npm-pack.json
+          TARBALL=$(node -e "const pack = JSON.parse(require('fs').readFileSync('npm-pack.json', 'utf8')); process.stdout.write(pack[0].filename)")
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+          echo "Packed artifact: $TARBALL"
+
+      - name: Attest package provenance
+        if: ${{ github.event_name == 'release' }}
+        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-path: ${{ steps.pack.outputs.tarball }}
+
+      - name: Publish to npm (dry-run)
+        if: ${{ github.event.inputs.dry-run == 'true' }}
+        run: npm publish --dry-run --provenance "${{ steps.pack.outputs.tarball }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm
+        if: ${{ github.event.inputs.dry-run != 'true' && github.event_name == 'release' }}
+        run: npm publish --provenance "${{ steps.pack.outputs.tarball }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # SC-01: Generate signed SBOM and attach to GitHub release
+      - name: Generate SBOM (CycloneDX)
+        if: ${{ github.event_name == 'release' }}
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-format json --output-file sbom.json
+
+      - name: Attest SBOM
+        if: ${{ github.event_name == 'release' }}
+        uses: actions/attest-sbom@51e74621a501c89df81fc1391c5a8f4cfc9fab2f # v3
+        with:
+          subject-path: ${{ steps.pack.outputs.tarball }}
+          sbom-path: sbom.json
+
+      - name: Install cosign
+        if: ${{ github.event_name == 'release' }}
+        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
+        with:
+          cosign-release: 'v2.4.1'
+
+      - name: Sign SBOM with Sigstore (keyless)
+        if: ${{ github.event_name == 'release' }}
+        run: cosign sign-blob --yes sbom.json --output-signature sbom.json.sig
+
+      - name: Attach signed SBOM to GitHub release
+        if: ${{ github.event_name == 'release' }}
+        run: gh release upload ${{ github.event.release.tag_name }} sbom.json sbom.json.sig --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,44 @@
+# Ignore generated files
+docs/generated/**
+docs/.vitepress/dist/**
+docs/.vitepress/cache/**
+
+# Ignore archive (legacy content)
+docs/archive/**
+
+# Ignore node_modules
+node_modules/**
+
+# Ignore coverage reports
+coverage/**
+
+# Ignore build outputs
+dist/**
+
+# Ignore snapshot files
+**/*.snap.md
+
+# Ignore CHANGELOG (has special formatting)
+CHANGELOG.md
+docs/CHANGELOG.md
+
+# Auto-generated files
+docs/DOCS_CATALOG.md
+docs/METRICS_DASHBOARD.md
+
+# Session notes and operational docs (not public-facing)
+.serval/**
+
+# Internal issue registry — dense structured format intentionally omits blank lines between heading and severity line
+ISSUES.md
+
+# Development context docs (internal reference, not public-facing)
+docs/development/**
+
+# Agent memory files (auto-generated)
+.claude/agent-memory/**
+.claude/worktrees/**
+
+# Research and planning docs (dense structured format, not public-facing)
+docs/research/**
+docs/testing/**

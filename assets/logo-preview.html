@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        background: #f0f0f0;
+      }
+      #logo {
+        width: 120px;
+        height: 120px;
+        background: #0f9d58;
+        border-radius: 20px;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ServalSheets Logo</h1>
+    <img src="servalsheets-logo.svg" id="logo" />
+    <p><strong>To save as PNG:</strong></p>
+    <ol>
+      <li>Right-click the logo above</li>
+      <li>Select "Copy Image"</li>
+      <li>Open Preview.app → File → New from Clipboard</li>
+      <li>File → Export → Format: PNG → Save as "servalsheets-logo-120.png"</li>
+    </ol>
+    <p><em>Or use this command:</em></p>
+    <code
+      >brew install imagemagick && convert servalsheets-logo.svg -resize 120x120
+      servalsheets-logo-120.png</code
+    >
+  </body>
+</html>

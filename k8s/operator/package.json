@@ -1,0 +1,24 @@
+{
+  "name": "servalsheets-operator",
+  "version": "1.0.0",
+  "description": "Kubernetes operator for ServalSheets MCP server",
+  "type": "module",
+  "main": "dist/controller.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/controller.js",
+    "dev": "tsx watch controller.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^0.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

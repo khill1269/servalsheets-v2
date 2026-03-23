@@ -1,0 +1,396 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'remediation/**', 'feat/**', 'fix/**', 'chore/**']
+  pull_request:
+    branches: [main, develop]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast checks that don't require test sharding
+  quick-checks:
+    name: Quick Checks (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20', '22']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies with retry
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: npm ci
+
+      - name: Setup Turbo cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Cache TypeScript build info
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            .tsbuildinfo
+            .tsbuildinfo.build
+          key: ${{ runner.os }}-tsbuildinfo-${{ hashFiles('src/**/*.ts', 'tsconfig*.json') }}
+          restore-keys: |
+            ${{ runner.os }}-tsbuildinfo-
+
+      - name: Cache dist folder
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: dist
+          key: ${{ runner.os }}-dist-${{ hashFiles('src/**/*.ts', 'tsconfig*.json', 'package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-dist-
+
+      - name: Validate action metadata consistency
+        run: npm run validate:actions
+
+      - name: Build (required for dynamic imports)
+        run: npm run build
+
+      - name: Verify documentation matches code
+        run: |
+          # Import actual counts from source of truth
+          EXPECTED_TOOLS=$(node --input-type=module -e "import { TOOL_COUNT } from './dist/schemas/index.js'; console.log(TOOL_COUNT)")
+          EXPECTED_ACTIONS=$(node --input-type=module -e "import { ACTION_COUNT } from './dist/schemas/index.js'; console.log(ACTION_COUNT)")
+
+          echo "Source of truth: ${EXPECTED_TOOLS} tools, ${EXPECTED_ACTIONS} actions"
+
+          # Check README.md mentions correct count
+          if ! grep -q "${EXPECTED_TOOLS} tools, ${EXPECTED_ACTIONS} actions" README.md; then
+            echo "❌ README.md has incorrect action count"
+            echo "   Expected: ${EXPECTED_TOOLS} tools, ${EXPECTED_ACTIONS} actions"
+            echo "   Current: $(grep -o '[0-9]* tools, [0-9]* actions' README.md || echo 'not found')"
+            exit 1
+          fi
+
+          # Check SKILL.md mentions correct count
+          if ! grep -q "${EXPECTED_TOOLS} tools with ${EXPECTED_ACTIONS} actions" docs/guides/SKILL.md; then
+            echo "❌ SKILL.md has incorrect action count"
+            echo "   Expected: ${EXPECTED_TOOLS} tools with ${EXPECTED_ACTIONS} actions"
+            echo "   Current: $(grep -o '[0-9]* tools with [0-9]* actions' docs/guides/SKILL.md || echo 'not found')"
+            exit 1
+          fi
+
+          echo "✅ Documentation action counts are correct (${EXPECTED_TOOLS} tools, ${EXPECTED_ACTIONS} actions)"
+
+      - name: Validate metadata consistency (strict mode)
+        run: npm run check:metadata-strict
+
+      - name: Validate cross-map completeness
+        run: npm test -- --run tests/contracts/cross-map-consistency.test.ts
+
+      - name: Check for hardcoded count references
+        run: bash scripts/check-hardcoded-counts.sh
+
+      - name: Validate exact tool count
+        run: |
+          node --input-type=module -e "
+          import { TOOL_DEFINITIONS } from './dist/mcp/registration/tool-definitions.js';
+          import { TOOL_COUNT } from './dist/schemas/index.js';
+
+          if (TOOL_DEFINITIONS.length !== TOOL_COUNT) {
+            console.error(\`❌ TOOL_DEFINITIONS length (\${TOOL_DEFINITIONS.length}) !== TOOL_COUNT (\${TOOL_COUNT})\`);
+            process.exit(1);
+          }
+
+          console.log(\`✅ Tool count validated: \${TOOL_COUNT} tools\`);
+          "
+
+      - name: Check placeholders
+        run: npm run check:placeholders
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check architecture
+        run: npm run check:architecture
+
+      - name: Check integration wiring
+        run: npm run check:integration-wiring
+
+      - name: Format check
+        run: npm run format:check
+
+  # Fast unit tests with Vitest sharding
+  test-fast:
+    name: Fast Tests (Node ${{ matrix.node-version }}, Shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    needs: quick-checks
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20', '22']
+        shard: [1, 2, 3, 4]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            node_modules
+            .turbo
+          key: ${{ runner.os }}-deps-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install dependencies with retry
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: npm ci
+
+      - name: Run fast tests with retry (shard ${{ matrix.shard }}/4)
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        with:
+          timeout_minutes: 8
+          max_attempts: 2
+          retry_wait_seconds: 10
+          command: npx vitest run --shard=${{ matrix.shard }}/4
+
+  # Parallel test execution with sharding (slower integration tests)
+  test-integration:
+    name: Integration Tests (Shard ${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    needs: quick-checks
+    timeout-minutes: 25
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        total_shards: [4]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            node_modules
+            .turbo
+          key: ${{ runner.os }}-deps-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install dependencies with retry
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: npm ci
+
+      - name: Setup Turbo cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-test-${{ matrix.shard }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-test-${{ matrix.shard }}-
+            ${{ runner.os }}-turbo-test-
+            ${{ runner.os }}-turbo-
+
+      - name: Run integration tests with retry (shard ${{ matrix.shard }}/${{ matrix.total_shards }})
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        with:
+          timeout_minutes: 20
+          max_attempts: 2
+          retry_wait_seconds: 30
+          command: npm run test:integration -- --shard=${{ matrix.shard }}/${{ matrix.total_shards }}
+
+  mcp-http-task-contract:
+    name: MCP HTTP Task Contract
+    runs-on: ubuntu-latest
+    needs: quick-checks
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies with retry
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: npm ci
+
+      - name: Run MCP HTTP task contract checks
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 2
+          retry_wait_seconds: 15
+          command: npm run test:mcp-http-task-contract
+
+  # Build after all tests pass
+  build:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    needs: [test-fast, test-integration, mcp-http-task-contract]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Turbo cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-build-
+            ${{ runner.os }}-turbo-
+
+      - name: Cache TypeScript build info
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            .tsbuildinfo
+            .tsbuildinfo.build
+          key: ${{ runner.os }}-tsbuildinfo-build-${{ hashFiles('src/**/*.ts', 'tsconfig*.json') }}
+          restore-keys: |
+            ${{ runner.os }}-tsbuildinfo-build-
+            ${{ runner.os }}-tsbuildinfo-
+
+      - name: Cache dist folder
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: dist
+          key: ${{ runner.os }}-dist-build-${{ hashFiles('src/**/*.ts', 'tsconfig*.json', 'package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-dist-build-
+            ${{ runner.os }}-dist-
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke test built artifacts
+        run: npm run smoke
+
+      - name: Validate server.json
+        run: npm run validate:server-json
+
+      - name: Validate server.json (extended)
+        run: npm run validate:server-json-extended
+
+      - name: Check package can be packed
+        run: npm pack --dry-run
+
+  mutation-testing:
+    name: Mutation Testing (Critical Paths)
+    runs-on: ubuntu-latest
+    needs: [test-fast]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run mutation tests on critical paths
+        run: npx stryker run stryker.critical.conf.mjs
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit (fail on high/critical)
+        # continue-on-error: node-saml → xml-encryption → node-forge has unfixable high/critical
+        # vulns with no upstream fix. Re-evaluate when node-saml v4 stable ships.
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - name: Run security audit (warn on moderate)
+        run: npm audit --audit-level=moderate
+        continue-on-error: true

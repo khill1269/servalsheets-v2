@@ -1,0 +1,196 @@
+.trace-detail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-primary);
+}
+
+.trace-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.trace-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.trace-detail-title h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+}
+
+.trace-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.trace-badge.success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.trace-badge.error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.btn-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-close:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.trace-detail-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-value {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.info-value code {
+  font-family: 'Courier New', monospace;
+  background-color: var(--bg-tertiary);
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+}
+
+.trace-detail-error {
+  padding: 1.5rem;
+  background-color: rgba(239, 68, 68, 0.05);
+  border-bottom: 1px solid var(--border);
+}
+
+.trace-detail-error h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--error);
+  margin-bottom: 1rem;
+}
+
+.trace-detail-error .error-code,
+.trace-detail-error .error-message {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.trace-detail-error strong {
+  color: var(--text-secondary);
+  margin-right: 0.5rem;
+}
+
+.trace-detail-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+}
+
+.view-mode-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-mode-tabs button {
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.view-mode-tabs button:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.view-mode-tabs button.active {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.btn-export {
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-export:hover {
+  background-color: var(--bg-secondary);
+}
+
+.trace-detail-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1.5rem;
+}
+
+.metadata-view {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.metadata-view pre {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.no-metadata {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 2rem;
+}

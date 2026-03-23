@@ -1,0 +1,100 @@
+{
+  "planId": "067def5f-57f1-48be-b291-5f897ebace06",
+  "description": "read data then write results",
+  "spreadsheetId": "test-spreadsheet-abc",
+  "steps": [
+    {
+      "stepId": "067def5f-57f1-48be-b291-5f897ebace06-step-0",
+      "tool": "sheets_data",
+      "action": "read",
+      "description": "Read data",
+      "params": {
+        "spreadsheetId": "test-spreadsheet-abc",
+        "range": "Sheet1!A1:B5"
+      }
+    },
+    {
+      "stepId": "067def5f-57f1-48be-b291-5f897ebace06-step-1",
+      "tool": "sheets_data",
+      "action": "write",
+      "description": "Write data",
+      "params": {
+        "spreadsheetId": "test-spreadsheet-abc",
+        "range": "Sheet1!A1:B2",
+        "values": [
+          [
+            "Name",
+            "Value"
+          ],
+          [
+            "Alice",
+            42
+          ]
+        ]
+      }
+    }
+  ],
+  "status": "completed",
+  "results": [
+    {
+      "stepId": "067def5f-57f1-48be-b291-5f897ebace06-step-0",
+      "success": true,
+      "result": {
+        "response": {
+          "success": true,
+          "action": "read",
+          "values": [
+            [
+              "Name",
+              "Value"
+            ],
+            [
+              "Alice",
+              42
+            ]
+          ]
+        }
+      },
+      "startedAt": "2026-03-22T18:20:21.684Z",
+      "completedAt": "2026-03-22T18:20:21.684Z"
+    },
+    {
+      "stepId": "067def5f-57f1-48be-b291-5f897ebace06-step-1",
+      "success": true,
+      "result": {
+        "response": {
+          "success": true,
+          "action": "write"
+        }
+      },
+      "startedAt": "2026-03-22T18:20:21.684Z",
+      "completedAt": "2026-03-22T18:20:21.684Z"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpointId": "2c4d91cd-95e0-4dc1-9699-5ab6eb51e428",
+      "planId": "067def5f-57f1-48be-b291-5f897ebace06",
+      "stepIndex": 0,
+      "context": "Before step: Read data",
+      "timestamp": "2026-03-22T18:20:21.683Z"
+    },
+    {
+      "checkpointId": "8a5afce0-32b0-44ad-94f0-1addf8cc9508",
+      "planId": "067def5f-57f1-48be-b291-5f897ebace06",
+      "stepIndex": 0,
+      "context": "Before step: Read data",
+      "timestamp": "2026-03-22T18:20:21.684Z"
+    },
+    {
+      "checkpointId": "35062867-b3a7-4bbb-b048-5dbef0656a7d",
+      "planId": "067def5f-57f1-48be-b291-5f897ebace06",
+      "stepIndex": 1,
+      "context": "Before step: Write data",
+      "timestamp": "2026-03-22T18:20:21.684Z"
+    }
+  ],
+  "createdAt": "2026-03-22T18:20:21.683Z",
+  "updatedAt": "2026-03-22T18:20:21.684Z",
+  "currentStepIndex": 2
+}

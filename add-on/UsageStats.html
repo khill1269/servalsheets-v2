@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css" />
+    <style>
+      body {
+        font-family: 'Google Sans', Arial, sans-serif;
+        padding: 20px;
+        font-size: 14px;
+      }
+
+      h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #202124;
+      }
+
+      .stats-card {
+        background: white;
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+
+      .stats-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .stats-label {
+        font-weight: 500;
+        color: #5f6368;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .stats-value {
+        font-size: 32px;
+        font-weight: 500;
+        color: #202124;
+        margin-bottom: 8px;
+      }
+
+      .stats-description {
+        font-size: 13px;
+        color: #5f6368;
+      }
+
+      .progress-bar {
+        height: 8px;
+        background: #f1f3f4;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 12px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4285f4 0%, #1a73e8 100%);
+        transition: width 0.3s ease;
+      }
+
+      .progress-fill.warning {
+        background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%);
+      }
+
+      .progress-fill.danger {
+        background: linear-gradient(90deg, #f44336 0%, #d32f2f 100%);
+      }
+
+      .plan-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+      }
+
+      .plan-badge.free {
+        background: #e8eaed;
+        color: #5f6368;
+      }
+
+      .plan-badge.pro {
+        background: #e8f0fe;
+        color: #1a73e8;
+      }
+
+      .plan-badge.team {
+        background: #fce8e6;
+        color: #d93025;
+      }
+
+      .plan-badge.enterprise {
+        background: #e6f4ea;
+        color: #137333;
+      }
+
+      .upgrade-cta {
+        background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+        color: white;
+        padding: 16px;
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .upgrade-cta h3 {
+        margin: 0 0 8px 0;
+        font-size: 16px;
+      }
+
+      .upgrade-cta p {
+        margin: 0 0 12px 0;
+        font-size: 13px;
+        opacity: 0.9;
+      }
+
+      .upgrade-button {
+        background: white;
+        color: #1a73e8;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #5f6368;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Usage Statistics</h2>
+
+    <div id="loading" class="loading">Loading statistics...</div>
+
+    <div id="stats" style="display: none">
+      <div class="stats-card">
+        <div class="stats-header">
+          <span class="stats-label">Current Plan</span>
+          <span id="plan-badge" class="plan-badge">Free</span>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div class="stats-label">Operations This Month</div>
+        <div class="stats-value" id="operations-used">0</div>
+        <div class="stats-description">
+          <span id="operations-limit">1,000</span> operations limit
+        </div>
+        <div class="progress-bar">
+          <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div class="stats-label">Usage Breakdown</div>
+        <div id="breakdown" class="stats-description">No usage data available yet.</div>
+      </div>
+
+      <div id="upgrade-section" style="display: none">
+        <div class="upgrade-cta">
+          <h3>🚀 Upgrade for More Power</h3>
+          <p>Get 50x more operations and unlock premium features</p>
+          <a href="https://servalsheets.com/upgrade" target="_blank" class="upgrade-button">
+            View Plans
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.addEventListener('load', function () {
+        google.script.run
+          .withSuccessHandler(displayStats)
+          .withFailureHandler(function (error) {
+            document.getElementById('loading').textContent = 'Failed to load statistics';
+          })
+          .getUsageStats();
+      });
+
+      function displayStats(result) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('stats').style.display = 'block';
+
+        if (!result.success) {
+          return;
+        }
+
+        const stats = result.stats;
+
+        // Plan badge
+        const planBadge = document.getElementById('plan-badge');
+        planBadge.textContent = stats.plan.toUpperCase();
+        planBadge.className = `plan-badge ${stats.plan}`;
+
+        // Operations
+        document.getElementById('operations-used').textContent =
+          stats.operationsThisMonth.toLocaleString();
+        document.getElementById('operations-limit').textContent = stats.limit.toLocaleString();
+
+        // Progress bar
+        const percentUsed = stats.percentUsed || 0;
+        const progressFill = document.getElementById('progress-fill');
+        progressFill.style.width = percentUsed + '%';
+
+        if (percentUsed >= 90) {
+          progressFill.className = 'progress-fill danger';
+        } else if (percentUsed >= 75) {
+          progressFill.className = 'progress-fill warning';
+        }
+
+        // Show upgrade CTA if on free plan and using >50%
+        if (stats.plan === 'free' && percentUsed > 50) {
+          document.getElementById('upgrade-section').style.display = 'block';
+        }
+      }
+    </script>
+  </body>
+</html>

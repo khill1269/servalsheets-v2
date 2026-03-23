@@ -1,0 +1,214 @@
+{
+  "manifest_version": "0.3",
+  "name": "servalsheets",
+  "display_name": "ServalSheets",
+  "version": "2.0.0",
+  "description": "Production-grade Google Sheets MCP server with 25 tools and 407 actions",
+  "long_description": "ServalSheets is a production-grade MCP server for Google Sheets with 25 tools and 407 actions. Features OAuth 2.1, MCP sampling, elicitation, tasks, and advanced data operations.",
+  "keywords": [
+    "google-sheets",
+    "spreadsheet",
+    "mcp",
+    "ai",
+    "automation",
+    "data"
+  ],
+  "support": "https://github.com/khill1269/servalsheets/issues",
+  "documentation": "https://servalsheets.dev",
+  "homepage": "https://servalsheets.dev",
+  "author": {
+    "name": "Thomas Lee Cahill",
+    "url": "https://github.com/khill1269"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/khill1269/servalsheets.git"
+  },
+  "license": "MIT",
+  "icon": "assets/servalsheets-logo-512.png",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/cli.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/dist/cli.js"
+      ],
+      "env": {
+        "LOG_LEVEL": "${user_config.LOG_LEVEL}",
+        "OAUTH_CLIENT_ID": "${user_config.OAUTH_CLIENT_ID}",
+        "OAUTH_CLIENT_SECRET": "${user_config.OAUTH_CLIENT_SECRET}",
+        "OAUTH_REDIRECT_URI": "${user_config.OAUTH_REDIRECT_URI}",
+        "GOOGLE_TOKEN_STORE_PATH": "${user_config.GOOGLE_TOKEN_STORE_PATH}",
+        "ENCRYPTION_KEY": "${user_config.ENCRYPTION_KEY}",
+        "OAUTH_SCOPE_MODE": "${user_config.OAUTH_SCOPE_MODE}"
+      }
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  },
+  "privacy_policies": [
+    "https://servalsheets.dev/privacy"
+  ],
+  "user_config": {
+    "LOG_LEVEL": {
+      "type": "string",
+      "title": "Log Level",
+      "description": "Log verbosity (error, warn, info, debug).",
+      "default": "info",
+      "required": false
+    },
+    "OAUTH_CLIENT_ID": {
+      "type": "string",
+      "title": "OAuth Client ID",
+      "description": "Google desktop-app OAuth client ID. Required for this self-hosted release unless your packaging step injects bundled credentials.",
+      "required": true
+    },
+    "OAUTH_CLIENT_SECRET": {
+      "type": "string",
+      "title": "OAuth Client Secret",
+      "description": "Google desktop-app OAuth client secret. Required for this self-hosted release unless your packaging step injects bundled credentials.",
+      "sensitive": true,
+      "required": true
+    },
+    "OAUTH_REDIRECT_URI": {
+      "type": "string",
+      "title": "OAuth Redirect URI",
+      "description": "Redirect URI for the local OAuth flow.",
+      "default": "http://localhost:3000/callback",
+      "required": false
+    },
+    "GOOGLE_TOKEN_STORE_PATH": {
+      "type": "string",
+      "title": "Token Store Path",
+      "description": "Path to the encrypted OAuth token store file.",
+      "default": "${HOME}${/}.config${/}servalsheets${/}tokens.enc",
+      "required": false
+    },
+    "ENCRYPTION_KEY": {
+      "type": "string",
+      "title": "Token Store Encryption Key",
+      "description": "64-character hex key used to encrypt stored OAuth tokens.",
+      "sensitive": true,
+      "required": false
+    },
+    "OAUTH_SCOPE_MODE": {
+      "type": "string",
+      "title": "OAuth Scope Mode",
+      "description": "Requested Google OAuth scope set (`full` or `minimal`).",
+      "default": "full",
+      "required": false
+    }
+  },
+  "tools": [
+    {
+      "name": "sheets_advanced",
+      "description": "Named ranges, protected ranges, tables, banding, smart chips, named functions (31 actions)"
+    },
+    {
+      "name": "sheets_agent",
+      "description": "Autonomous multi-step agent: plan, execute, rollback workflows (8 actions)"
+    },
+    {
+      "name": "sheets_analyze",
+      "description": "Scout, comprehensive analysis, formula health, suggestions, auto-enhance (26 actions)"
+    },
+    {
+      "name": "sheets_appsscript",
+      "description": "Google Apps Script: create, run, deploy, manage triggers (19 actions)"
+    },
+    {
+      "name": "sheets_auth",
+      "description": "Authenticate with Google OAuth2 (login, logout, status, refresh) (5 actions)"
+    },
+    {
+      "name": "sheets_bigquery",
+      "description": "BigQuery integration: connect, query, import/export data (17 actions)"
+    },
+    {
+      "name": "sheets_collaborate",
+      "description": "Sharing, permissions, comments, version history (41 actions)"
+    },
+    {
+      "name": "sheets_composite",
+      "description": "Multi-step workflows: import CSV/XLSX, generate sheets, audit, publish reports (21 actions)"
+    },
+    {
+      "name": "sheets_compute",
+      "description": "Server-side computation: statistics, regression, forecasting, DuckDB SQL (16 actions)"
+    },
+    {
+      "name": "sheets_confirm",
+      "description": "Interactive confirmation wizards for destructive operations (5 actions)"
+    },
+    {
+      "name": "sheets_connectors",
+      "description": "Live external API data connectors: configure, query, subscribe (10 actions)"
+    },
+    {
+      "name": "sheets_core",
+      "description": "Spreadsheet and sheet management (create, list, add/delete/copy sheets, metadata) (21 actions)"
+    },
+    {
+      "name": "sheets_data",
+      "description": "Read, write, append, find/replace, batch operations, cross-spreadsheet federation (25 actions)"
+    },
+    {
+      "name": "sheets_dependencies",
+      "description": "Formula dependency graph, impact analysis, scenario modeling, what-if analysis (10 actions)"
+    },
+    {
+      "name": "sheets_dimensions",
+      "description": "Rows and columns: insert, delete, resize, hide, freeze, sort, filter views (30 actions)"
+    },
+    {
+      "name": "sheets_federation",
+      "description": "Remote MCP server calls and cross-service workflows (4 actions)"
+    },
+    {
+      "name": "sheets_fix",
+      "description": "Data cleaning: clean, standardize formats, fill missing, detect anomalies (6 actions)"
+    },
+    {
+      "name": "sheets_format",
+      "description": "Cell formatting, conditional rules, data validation, sparklines, batch format (25 actions)"
+    },
+    {
+      "name": "sheets_history",
+      "description": "Undo/redo, snapshots, timeline, diff revisions, restore cells (10 actions)"
+    },
+    {
+      "name": "sheets_quality",
+      "description": "Data validation, conflict detection, quality checks (4 actions)"
+    },
+    {
+      "name": "sheets_session",
+      "description": "Active spreadsheet context, preferences, checkpoints, pipeline execution (31 actions)"
+    },
+    {
+      "name": "sheets_templates",
+      "description": "Save, list, apply, and import reusable sheet templates (8 actions)"
+    },
+    {
+      "name": "sheets_transaction",
+      "description": "Atomic multi-operation transactions with rollback support (6 actions)"
+    },
+    {
+      "name": "sheets_visualize",
+      "description": "Charts and visualizations: create, update, delete, suggest chart types (18 actions)"
+    },
+    {
+      "name": "sheets_webhook",
+      "description": "Webhooks and change notifications: register, watch, trigger (10 actions)"
+    }
+  ]
+}

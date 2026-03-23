@@ -1,0 +1,202 @@
+# ServalSheets Helm Chart Values
+# Override these values for your deployment
+
+# -- Number of replicas
+replicaCount: 2
+
+image:
+  # -- Container image repository
+  repository: servalsheets
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag (default: chart appVersion)
+  tag: ''
+
+# -- Image pull secrets for private registries
+imagePullSecrets: []
+# -- Override the chart name
+nameOverride: ''
+# -- Override the full name
+fullnameOverride: ''
+
+serviceAccount:
+  # -- Create a service account
+  create: true
+  # -- Annotations for the service account
+  annotations: {}
+  # -- Name of the service account (auto-generated if not set)
+  name: ''
+
+# -- Pod annotations
+podAnnotations:
+  prometheus.io/scrape: 'true'
+  prometheus.io/port: '3000'
+  prometheus.io/path: '/metrics'
+
+# -- Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# -- Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service port
+  port: 80
+  # -- Target port on the container
+  targetPort: 3000
+
+ingress:
+  # -- Enable ingress
+  enabled: false
+  # -- Ingress class name
+  className: 'nginx'
+  # -- Ingress annotations
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  # -- Ingress hosts
+  hosts:
+    - host: servalsheets.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  # -- Ingress TLS configuration
+  tls: []
+  #  - secretName: servalsheets-tls
+  #    hosts:
+  #      - servalsheets.example.com
+
+# -- Resource requests and limits
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+autoscaling:
+  # -- Enable horizontal pod autoscaler
+  enabled: true
+  # -- Minimum replicas
+  minReplicas: 2
+  # -- Maximum replicas
+  maxReplicas: 10
+  # -- Target CPU utilization percentage
+  targetCPUUtilizationPercentage: 70
+  # -- Target memory utilization percentage
+  targetMemoryUtilizationPercentage: 80
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules
+affinity: {}
+
+# ServalSheets Configuration
+config:
+  # -- Node environment
+  nodeEnv: production
+  # -- Log level (debug, info, warn, error)
+  logLevel: info
+  # -- Log format (json, text)
+  logFormat: json
+  # -- HTTP port
+  httpPort: 3000
+  # -- Rate limit window in milliseconds
+  rateLimitWindowMs: 60000
+  # -- Max requests per rate limit window
+  rateLimitMaxRequests: 100
+  # -- CORS allowed origins (comma-separated)
+  corsAllowedOrigins: ''
+
+# OAuth Configuration
+oauth:
+  # -- OAuth redirect URI
+  redirectUri: ''
+  # -- Allowed redirect URIs (comma-separated)
+  allowedRedirectUris: ''
+  # -- Existing secret name for OAuth credentials
+  existingSecret: ''
+  # -- Secret key for client ID
+  clientIdKey: client-id
+  # -- Secret key for client secret
+  clientSecretKey: client-secret
+  # -- Secret key for session secret
+  sessionSecretKey: session-secret
+
+# Google Credentials
+google:
+  # -- Existing secret name for Google credentials
+  existingSecret: ''
+  # -- Secret key for service account JSON
+  serviceAccountKey: service-account.json
+  # -- Mount path for credentials
+  credentialsPath: /etc/google/service-account.json
+
+# Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 2
+
+# Pod disruption budget
+podDisruptionBudget:
+  # -- Enable PDB
+  enabled: true
+  # -- Minimum available pods
+  minAvailable: 1
+
+# Network policy
+networkPolicy:
+  # -- Enable network policy
+  enabled: false
+  # -- Ingress rules
+  ingress: []
+  # -- Egress rules (Google APIs required)
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  # -- Enable ServiceMonitor
+  enabled: false
+  # -- ServiceMonitor namespace (defaults to release namespace)
+  namespace: ''
+  # -- Scrape interval
+  interval: 30s
+  # -- Scrape timeout
+  scrapeTimeout: 10s
+  # -- Additional labels
+  labels: {}

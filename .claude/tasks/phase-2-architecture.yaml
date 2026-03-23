@@ -1,0 +1,221 @@
+# Phase 2: Architecture Excellence
+# Duration: 2 weeks
+# Dev Days: 14
+
+phase:
+  number: 2
+  name: 'Architecture Excellence'
+  goal: 'World-class performance optimization'
+  duration_weeks: 2
+  estimated_dev_days: 14
+
+tasks:
+  # Cache Invalidation Graph (4 days)
+  - id: arch-001
+    title: 'Design: Cache Invalidation Graph'
+    description: 'Design operation-based cache invalidation rules'
+    owner: null # Unclaimed
+    status: PENDING
+    priority: HIGH
+    estimated_hours: 8
+    dependencies: []
+    deliverables:
+      - 'docs/design/cache-invalidation-graph.md'
+      - 'TypeScript interfaces for invalidation rules'
+    acceptance_criteria:
+      - '40-60% target cache hit rate'
+      - 'Operation-to-cache mapping complete'
+      - 'Invalidation rules documented'
+    labels: ['design', 'performance']
+
+  - id: arch-002
+    title: 'Implement: Cache Invalidation Graph'
+    description: 'Implement invalidation graph from design'
+    owner: null
+    status: BLOCKED
+    priority: HIGH
+    estimated_hours: 24
+    dependencies: ['arch-001']
+    deliverables:
+      - 'src/services/cache-invalidation-graph.ts'
+      - 'tests/services/cache-invalidation-graph.test.ts'
+    acceptance_criteria:
+      - 'All tests pass'
+      - 'Cache hit rate >40% in benchmarks'
+      - 'No regression in P95 latency'
+    labels: ['implementation', 'performance']
+
+  - id: arch-003
+    title: 'Test: Cache Invalidation Performance'
+    description: 'Benchmark cache hit rates and latency'
+    owner: null
+    status: BLOCKED
+    priority: HIGH
+    estimated_hours: 8
+    dependencies: ['arch-002']
+    deliverables:
+      - 'tests/benchmarks/cache-invalidation.bench.ts'
+      - 'Benchmark report'
+    acceptance_criteria:
+      - 'Cache hit rate 40-60%'
+      - 'No P95 latency regression'
+    labels: ['testing', 'performance']
+
+  # Adaptive Concurrency (2 days)
+  - id: arch-004
+    title: 'Design: Adaptive Concurrency Ceiling'
+    description: 'Design dynamic concurrency adjustment (5-30 range)'
+    owner: null
+    status: PENDING
+    priority: HIGH
+    estimated_hours: 4
+    dependencies: []
+    deliverables:
+      - 'docs/design/adaptive-concurrency.md'
+    acceptance_criteria:
+      - 'Algorithm handles 429 errors'
+      - 'Quota headroom tracking defined'
+    labels: ['design', 'performance']
+
+  - id: arch-005
+    title: 'Implement: Adaptive Concurrency'
+    description: 'Add dynamic concurrency to concurrency-coordinator'
+    owner: null
+    status: BLOCKED
+    priority: HIGH
+    estimated_hours: 12
+    dependencies: ['arch-004']
+    deliverables:
+      - 'src/services/concurrency-coordinator.ts (enhanced)'
+      - 'tests/services/concurrency-coordinator.test.ts'
+    acceptance_criteria:
+      - 'Zero 429 errors in load test'
+      - 'Concurrency adjusts between 5-30'
+    labels: ['implementation', 'performance']
+
+  # Streaming Exports (5 days)
+  - id: arch-006
+    title: 'Design: Streaming Export System'
+    description: 'Design MCP Task-based streaming for large exports'
+    owner: null
+    status: PENDING
+    priority: HIGH
+    estimated_hours: 8
+    dependencies: []
+    deliverables:
+      - 'docs/design/streaming-exports.md'
+      - 'Chunk size analysis (1000 rows)'
+    acceptance_criteria:
+      - 'Zero OOM for 100K+ rows'
+      - 'MCP Task integration defined'
+    labels: ['design', 'architecture']
+
+  - id: arch-007
+    title: 'Implement: Streaming Export Handler'
+    description: 'Add streaming to composite handler'
+    owner: null
+    status: BLOCKED
+    priority: HIGH
+    estimated_hours: 32
+    dependencies: ['arch-006']
+    deliverables:
+      - 'src/handlers/composite.ts (enhanced +200 lines)'
+      - 'tests/handlers/composite.streaming.test.ts'
+    acceptance_criteria:
+      - '100K row export succeeds'
+      - 'No memory spikes >500MB'
+      - 'Chunk size: 1000 rows'
+    labels: ['implementation', 'feature']
+
+  - id: arch-008
+    title: 'Test: Streaming Export Performance'
+    description: 'Load test with 100K+ row exports'
+    owner: null
+    status: BLOCKED
+    priority: HIGH
+    estimated_hours: 8
+    dependencies: ['arch-007']
+    deliverables:
+      - 'tests/load/streaming-export.load.ts'
+      - 'Performance report'
+    acceptance_criteria:
+      - '100K rows: <60s'
+      - 'Memory: <500MB peak'
+      - 'No OOM errors'
+    labels: ['testing', 'performance']
+
+  # Worker Pool Integration (3 days)
+  - id: arch-009
+    title: 'Implement: Worker Pool Integration'
+    description: 'Offload CPU-intensive analysis to worker threads'
+    owner: null
+    status: PENDING
+    priority: MEDIUM
+    estimated_hours: 20
+    dependencies: []
+    deliverables:
+      - 'src/handlers/analyze.ts (enhanced)'
+      - 'Worker pool integration'
+    acceptance_criteria:
+      - '10K+ row analysis uses workers'
+      - '75% speedup vs main thread'
+    labels: ['implementation', 'performance']
+
+  - id: arch-010
+    title: 'Test: Worker Pool Performance'
+    description: 'Benchmark worker pool vs main thread'
+    owner: null
+    status: BLOCKED
+    priority: MEDIUM
+    estimated_hours: 4
+    dependencies: ['arch-009']
+    deliverables:
+      - 'tests/benchmarks/worker-pool.bench.ts'
+      - 'Performance comparison report'
+    acceptance_criteria:
+      - '75%+ improvement for 10K rows'
+      - 'No worker crashes'
+    labels: ['testing', 'performance']
+
+  # Documentation & Validation
+  - id: arch-011
+    title: 'Document: Architecture Changes'
+    description: 'Update architecture docs with Phase 2 changes'
+    owner: null
+    status: PENDING
+    priority: MEDIUM
+    estimated_hours: 8
+    dependencies: ['arch-003', 'arch-005', 'arch-008', 'arch-010']
+    deliverables:
+      - 'docs/architecture/PHASE_2_CHANGES.md'
+      - 'Updated architecture diagrams'
+    acceptance_criteria:
+      - 'All 4 features documented'
+      - 'Performance metrics included'
+    labels: ['documentation']
+
+  - id: arch-012
+    title: 'Validate: Phase 2 Completion'
+    description: 'Run full gate pipeline (G0-G4)'
+    owner: null
+    status: BLOCKED
+    priority: HIGH
+    estimated_hours: 2
+    dependencies: ['arch-003', 'arch-005', 'arch-008', 'arch-010', 'arch-011']
+    deliverables:
+      - 'docs/validation/phase-2-completion.md'
+      - 'All gates passed'
+    acceptance_criteria:
+      - 'G0-G4: PASS'
+      - 'All tests passing'
+      - 'No regressions'
+    labels: ['validation', 'quality']
+
+metadata:
+  total_tasks: 12
+  estimated_hours: 138
+  estimated_days: 17.25 # Accounting for 8-hour days
+  dependencies_resolved: false # Updated as tasks complete
+  critical_path:
+    - 'arch-001 → arch-002 → arch-003' # Cache invalidation (longest)
+    - 'arch-006 → arch-007 → arch-008' # Streaming exports

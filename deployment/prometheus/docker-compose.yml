@@ -1,0 +1,176 @@
+# Prometheus and Alertmanager for ServalSheets Monitoring
+# Collects metrics, evaluates alerts, and sends notifications
+
+services:
+  # ========================================
+  # Prometheus - Metrics Collection & Alerting
+  # ========================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: servalsheets-prometheus
+    restart: unless-stopped
+
+    # Configuration files
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+
+    # Command line flags
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle' # Enable hot reload via API
+      - '--web.enable-admin-api' # Enable admin APIs
+
+    # Expose Prometheus UI and API
+    ports:
+      - '9090:9090'
+
+    # Connect to ServalSheets network
+    networks:
+      - servalsheets-monitoring
+
+    # Health check
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:9090/-/healthy']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # ========================================
+  # Alertmanager - Alert Routing & Notifications
+  # ========================================
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: servalsheets-alertmanager
+    restart: unless-stopped
+
+    # Configuration files
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+
+    # Command line flags
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+      - '--cluster.advertise-address=0.0.0.0:9093'
+
+    # Expose Alertmanager UI and API
+    ports:
+      - '9093:9093'
+
+    # Connect to monitoring network
+    networks:
+      - servalsheets-monitoring
+
+    # Health check
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:9093/-/healthy']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # ========================================
+  # Grafana - Visualization (Optional)
+  # ========================================
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: servalsheets-grafana
+    restart: unless-stopped
+
+    # Configuration
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Change in production!
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=
+
+    # Data persistence
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+    # Expose Grafana UI
+    ports:
+      - '3001:3000'
+
+    # Connect to monitoring network
+    networks:
+      - servalsheets-monitoring
+
+    # Depends on Prometheus
+    depends_on:
+      - prometheus
+
+    # Health check
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+# ========================================
+# Networks
+# ========================================
+networks:
+  servalsheets-monitoring:
+    driver: bridge
+    name: servalsheets-monitoring
+
+# ========================================
+# Volumes
+# ========================================
+volumes:
+  prometheus-data:
+    driver: local
+    name: servalsheets-prometheus-data
+
+  alertmanager-data:
+    driver: local
+    name: servalsheets-alertmanager-data
+
+  grafana-data:
+    driver: local
+    name: servalsheets-grafana-data

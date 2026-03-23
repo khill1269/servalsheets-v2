@@ -1,0 +1,147 @@
+name: Auto Draft PR
+
+on:
+  push:
+    branches:
+      - 'remediation/**'
+      - 'feat/**'
+      - 'fix/**'
+      - 'chore/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: auto-draft-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  draft-pr:
+    name: Open Draft PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Skip if this is a merge commit (already has a PR)
+    if: "!startsWith(github.event.head_commit.message, 'Merge')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          result-encoding: string
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`,
+              state: 'open',
+            });
+            return prs.length > 0 ? 'true' : 'false';
+
+      - name: Get commit summary
+        if: steps.check-pr.outputs.result == 'false'
+        id: commits
+        run: |
+          # Get commits on this branch not on main
+          COMMITS=$(git log origin/main..HEAD --oneline --no-merges | head -20)
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          COUNT=$(git rev-list --count origin/main..HEAD)
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+      - name: Create draft PR
+        if: steps.check-pr.outputs.result == 'false'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const commitCount = '${{ steps.commits.outputs.count }}';
+            const commitSummary = `${{ steps.commits.outputs.summary }}`;
+
+            // Derive a title from the branch name
+            const titleRaw = branch
+              .replace(/^(remediation|feat|fix|chore)\//, '')
+              .replace(/[-_]/g, ' ')
+              .replace(/\//g, ': ');
+            const title = titleRaw.charAt(0).toUpperCase() + titleRaw.slice(1);
+
+            const body = `## Description
+
+            <!-- Auto-drafted from branch \`${branch}\` — update this description before merging -->
+
+            ## Commits (${commitCount})
+
+            \`\`\`
+            ${commitSummary}
+            \`\`\`
+
+            ## Validation Gates
+
+            - [ ] G0: Baseline Integrity (\`npm run gates:g0\`)
+            - [ ] G1: Metadata Consistency (\`npm run gates:g1\`)
+            - [ ] Tests passing (\`npm run test:fast\`)
+            - [ ] No silent fallbacks (\`npm run check:silent-fallbacks\`)
+            - [ ] \`npm run schema:commit\` run after any schema changes
+
+            ## Checklist
+
+            - [ ] Self-review completed
+            - [ ] All validation gates pass
+            - [ ] Session notes updated (\`.serval/session-notes.md\`)
+
+            ---
+            *Auto-drafted — convert to ready when complete*`;
+
+            let pr;
+            try {
+              ({ data: pr } = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                head: branch,
+                base: 'main',
+                draft: true,
+              }));
+            } catch (e) {
+              if (e.status === 403 || (e.message && e.message.includes('not permitted'))) {
+                console.log(`⚠️  Cannot create PR — Actions may not have pull-request write permission.`);
+                console.log(`Enable "Allow GitHub Actions to create and approve pull requests" in Settings > Actions > General.`);
+                console.log(`Branch: ${branch} — create the PR manually.`);
+                return;
+              }
+              throw e;
+            }
+
+            console.log(`Draft PR created: ${pr.html_url}`);
+
+            // Add a label based on branch prefix
+            const prefix = branch.split('/')[0];
+            const labelMap = {
+              'feat': 'enhancement',
+              'fix': 'bug',
+              'chore': 'chore',
+              'remediation': 'remediation',
+            };
+            const label = labelMap[prefix];
+            if (label) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: [label],
+                });
+              } catch (e) {
+                // Label may not exist — non-fatal
+                console.log(`Could not add label '${label}': ${e.message}`);
+              }
+            }

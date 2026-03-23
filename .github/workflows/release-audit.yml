@@ -1,0 +1,103 @@
+name: Release Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_live_tests:
+        description: 'Run live Google Sheets validation during the audit'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  release-audit:
+    name: Release Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup live test credentials
+        if: ${{ github.event.inputs.include_live_tests == 'true' }}
+        env:
+          GOOGLE_TEST_CREDENTIALS: ${{ secrets.GOOGLE_TEST_CREDENTIALS }}
+        run: |
+          if [ -z "$GOOGLE_TEST_CREDENTIALS" ]; then
+            echo "GOOGLE_TEST_CREDENTIALS secret is required when include_live_tests=true" >&2
+            exit 1
+          fi
+          mkdir -p tests/config
+          printf '%s' "$GOOGLE_TEST_CREDENTIALS" > tests/config/test-credentials.json
+
+      - name: Run release audit
+        if: ${{ github.event.inputs.include_live_tests != 'true' }}
+        run: npm run release:audit
+
+      - name: Run release audit with live tests
+        if: ${{ github.event.inputs.include_live_tests == 'true' }}
+        env:
+          TEST_REAL_API: 'true'
+          GOOGLE_TEST_CREDENTIALS_PATH: tests/config/test-credentials.json
+          GOOGLE_APPLICATION_CREDENTIALS: tests/config/test-credentials.json
+          TEST_SPREADSHEET_ID: ${{ secrets.TEST_SPREADSHEET_ID }}
+        run: npm run release:audit
+
+      - name: Upload audit artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-audit-artifacts
+          path: |
+            audit-output/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f tests/config/test-credentials.json
+
+      - name: Summarize audit
+        if: ${{ always() }}
+        run: |
+          echo "## Release Audit" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "audit-output/quick-results.json" ]; then
+            SCORE=$(node -p "require('./audit-output/quick-results.json').totalPercentage ?? require('./audit-output/quick-results.json').total_percentage ?? 'unknown'")
+            echo "- Quick audit score: ${SCORE}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Quick audit score: unavailable" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f "audit-output/hotspot-summary.json" ]; then
+            HOTSPOT_TOTAL=$(node -p "require('./audit-output/hotspot-summary.json').totals?.totalIssues ?? 'unknown'")
+            echo "- Hotspot analyzer issues: ${HOTSPOT_TOTAL}" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Top hotspot files:" >> "$GITHUB_STEP_SUMMARY"
+            node -e "for (const entry of (require('./audit-output/hotspot-summary.json').topFiles || []).slice(0, 5)) console.log(\`  - \${entry.file}: \${entry.count}\`)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Hotspot analyzer issues: unavailable" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "${{ github.event.inputs.include_live_tests }}" = "true" ]; then
+            echo "- Live Google validation: requested" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Live Google validation: skipped" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- Command: \`npm run release:audit\`" >> "$GITHUB_STEP_SUMMARY"

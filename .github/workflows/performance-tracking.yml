@@ -1,0 +1,250 @@
+name: Performance Tracking
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+# Only run one performance test at a time
+concurrency:
+  group: performance-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  performance-regression-tests:
+    name: Performance Regression Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0 # Need full history for baseline comparison
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Restore performance baseline
+        id: cache-baseline
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .performance-history/
+          key: performance-baseline-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            performance-baseline-${{ github.ref_name }}-
+            performance-baseline-main-
+
+      - name: Run performance regression tests
+        run: npm run perf:compare
+        env:
+          NODE_OPTIONS: '--expose-gc'
+
+      - name: Store performance baseline
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          # Store new baseline on main branch
+          PERF_BASELINE=true npm run perf:baseline
+
+      - name: Generate performance dashboard
+        if: always()
+        run: |
+          if [ -d .performance-history/history ] && ls .performance-history/history/*.json >/dev/null 2>&1; then
+            npm run perf:dashboard
+          else
+            mkdir -p .performance-history
+            cat > .performance-history/dashboard.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <title>Performance Dashboard Pending</title>
+          </head>
+          <body>
+            <h1>Performance Dashboard Pending</h1>
+            <p>No performance history exists yet for this branch.</p>
+          </body>
+          </html>
+          EOF
+          fi
+
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: performance-results
+          path: |
+            .performance-history/
+          retention-days: 90
+
+      - name: Upload performance dashboard
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: performance-dashboard
+          path: .performance-history/dashboard.html
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Comment on PR with performance results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const historyDir = '.performance-history/history';
+            if (!fs.existsSync(historyDir)) {
+              console.log('No performance history found');
+              return;
+            }
+
+            const files = fs.readdirSync(historyDir)
+              .filter(f => f.startsWith('baseline-') && f.endsWith('.json'))
+              .sort()
+              .reverse();
+
+            if (files.length === 0) {
+              console.log('No baseline files found');
+              return;
+            }
+
+            const latest = JSON.parse(fs.readFileSync(path.join(historyDir, files[0]), 'utf-8'));
+
+            let comment = '## Performance Impact\n\n';
+            comment += `**Commit:** ${latest.gitCommit}\n`;
+            comment += `**Tests Run:** ${latest.metrics.length}\n\n`;
+
+            // Check for regressions
+            if (files.length >= 2) {
+              const previous = JSON.parse(fs.readFileSync(path.join(historyDir, files[1]), 'utf-8'));
+              const regressions = [];
+              const improvements = [];
+
+              for (const metric of latest.metrics) {
+                const prevMetric = previous.metrics.find(m => m.name === metric.name);
+                if (!prevMetric) continue;
+
+                const p95Change = ((metric.latency.p95 - prevMetric.latency.p95) / prevMetric.latency.p95) * 100;
+
+                if (p95Change > 15) {
+                  regressions.push({ name: metric.name, change: p95Change });
+                } else if (p95Change < -10) {
+                  improvements.push({ name: metric.name, change: p95Change });
+                }
+              }
+
+              if (regressions.length > 0) {
+                comment += '### ⚠️ Performance Regressions\n\n';
+                for (const reg of regressions) {
+                  comment += `- \`${reg.name}\`: +${reg.change.toFixed(1)}% slower\n`;
+                }
+                comment += '\n';
+              }
+
+              if (improvements.length > 0) {
+                comment += '### ✨ Performance Improvements\n\n';
+                for (const imp of improvements) {
+                  comment += `- \`${imp.name}\`: ${Math.abs(imp.change).toFixed(1)}% faster\n`;
+                }
+                comment += '\n';
+              }
+
+              if (regressions.length === 0 && improvements.length === 0) {
+                comment += '### ✅ No significant performance changes\n\n';
+              }
+            } else {
+              comment += '### ℹ️ No baseline for comparison\n\n';
+              comment += 'This is the first performance run for this branch.\n\n';
+            }
+
+            comment += '---\n';
+            comment += '*View detailed dashboard in artifacts*\n';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail on critical regressions
+        if: always()
+        run: |
+          # Check if there were critical regressions
+          if [ -f .performance-history/regression-detected ]; then
+            echo "Critical performance regressions detected!"
+            exit 1
+          fi
+
+  update-baseline-main:
+    name: Update Baseline (main)
+    runs-on: ubuntu-latest
+    needs: performance-regression-tests
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Download performance results
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: performance-results
+          path: .performance-history/
+
+      - name: Update baseline cache
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .performance-history/
+          key: performance-baseline-main-${{ github.sha }}
+
+  publish-dashboard:
+    name: Publish Dashboard
+    runs-on: ubuntu-latest
+    needs: performance-regression-tests
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Download dashboard
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: performance-dashboard
+          path: dashboard/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@e9c66a37f080288a11235e32cbe2dc5fb3a679cc # v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dashboard
+          destination_dir: performance
+          keep_files: false
+          commit_message: 'Update performance dashboard'

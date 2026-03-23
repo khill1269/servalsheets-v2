@@ -1,0 +1,187 @@
+---
+# ServalSheets Prometheus Alerting Rules (PH4.4)
+#
+# Load into Prometheus by adding to prometheus.yml:
+#   rule_files:
+#     - /etc/prometheus/alertmanager-rules.yml
+#
+# Key metrics used:
+#   servalsheets_quota_warnings_total       — quota near 80% limit
+#   servalsheets_tool_calls_total           — error rate by tool/action
+#   servalsheets_heap_used_bytes            — heap memory usage (PH4.3)
+#   servalsheets_circuit_breaker_state      — circuit breaker open/half-open
+#   servalsheets_etag_cache_hit_rate        — ETag cache effectiveness (PH4.3)
+#   servalsheets_mcp_connection_status      — MCP connection health
+
+groups:
+  - name: servalsheets.quota
+    rules:
+      - alert: QuotaNearLimit
+        expr: |
+          increase(servalsheets_quota_warnings_total[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/quota-near-limit.md
+        annotations:
+          summary: "Google Sheets API quota approaching 80% of limit"
+          description: "Quota warning fired for tenant {{ $labels.tenantId }}. Reduce request rate or request quota increase."
+
+      - alert: QuotaExhausted
+        expr: |
+          rate(servalsheets_tool_calls_total{status="error"}[5m]) > 0
+          AND on() (
+            rate(servalsheets_google_api_calls_total{status="429"}[5m]) > 0
+          )
+        for: 2m
+        labels:
+          severity: critical
+          runbook: docs/runbooks/quota-near-limit.md
+        annotations:
+          summary: "Google Sheets API quota exhausted (429s detected)"
+          description: "Tool calls are failing with 429 responses. API quota may be exhausted."
+
+  - name: servalsheets.errors
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(servalsheets_tool_calls_total{status="error"}[5m])
+            /
+            rate(servalsheets_tool_calls_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/high-error-rate.md
+        annotations:
+          summary: "High tool call error rate (>5%) on {{ $labels.tool }}"
+          description: "Tool {{ $labels.tool }} action {{ $labels.action }} has error rate {{ humanizePercentage $value }} over the last 5 minutes."
+
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            rate(servalsheets_tool_calls_total{status="error"}[5m])
+            /
+            rate(servalsheets_tool_calls_total[5m])
+          ) > 0.20
+        for: 2m
+        labels:
+          severity: critical
+          runbook: docs/runbooks/high-error-rate.md
+        annotations:
+          summary: "Critical tool call error rate (>20%) on {{ $labels.tool }}"
+          description: "Tool {{ $labels.tool }} has error rate {{ humanizePercentage $value }}. Immediate investigation required."
+
+  - name: servalsheets.memory
+    rules:
+      - alert: HeapMemoryHigh
+        expr: |
+          servalsheets_heap_used_bytes / servalsheets_heap_total_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/memory-exhaustion.md
+        annotations:
+          summary: "Node.js heap usage above 85%"
+          description: "Heap used: {{ humanize $value }} / {{ humanize servalsheets_heap_total_bytes }}. Consider increasing --max-old-space-size or investigating memory leaks."
+
+      - alert: HeapMemoryCritical
+        expr: |
+          servalsheets_heap_used_bytes / servalsheets_heap_total_bytes > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          runbook: docs/runbooks/memory-exhaustion.md
+        annotations:
+          summary: "Node.js heap usage above 95% — OOM imminent"
+          description: "Heap usage at {{ humanizePercentage $value }}. Process will likely crash. Restart or scale immediately."
+
+  - name: servalsheets.circuit_breaker
+    rules:
+      - alert: CircuitBreakerOpen
+        expr: |
+          servalsheets_circuit_breaker_state == 2
+        for: 0m
+        labels:
+          severity: critical
+          runbook: docs/runbooks/circuit-breaker.md
+        annotations:
+          summary: "Circuit breaker OPEN for {{ $labels.circuit }}"
+          description: "The {{ $labels.circuit }} circuit breaker is open. All requests to this API are being rejected. Investigate upstream failures."
+
+      - alert: CircuitBreakerHalfOpen
+        expr: |
+          servalsheets_circuit_breaker_state == 1
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/circuit-breaker.md
+        annotations:
+          summary: "Circuit breaker half-open for {{ $labels.circuit }}"
+          description: "The {{ $labels.circuit }} circuit breaker is in HALF_OPEN state for >5 minutes. Upstream may be recovering slowly."
+
+  - name: servalsheets.cache
+    rules:
+      - alert: ETagCacheHitRateLow
+        expr: |
+          servalsheets_etag_cache_hit_rate < 0.50
+        for: 15m
+        labels:
+          severity: warning
+          runbook: docs/guides/caching-patterns.md
+        annotations:
+          summary: "ETag cache hit rate below 50%"
+          description: "ETag cache effectiveness is {{ humanizePercentage $value }}. High cache miss rate increases Google API quota consumption."
+
+  - name: servalsheets.mcp
+    rules:
+      - alert: McpConnectionUnhealthy
+        expr: |
+          servalsheets_mcp_connection_status >= 2
+        for: 2m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/service-down.md
+        annotations:
+          summary: "MCP connection unhealthy (status={{ $value }})"
+          description: "MCP connection status is {{ $value }} (2=warning, 3=disconnected). Clients may be unable to call tools."
+
+      - alert: McpConnectionDisconnected
+        expr: |
+          servalsheets_mcp_connection_status == 3
+        for: 0m
+        labels:
+          severity: critical
+          runbook: docs/runbooks/service-down.md
+        annotations:
+          summary: "MCP connection DISCONNECTED"
+          description: "Server has no active MCP connections. All tool calls are failing."
+
+  - name: servalsheets.slowness
+    rules:
+      - alert: SlowToolCalls
+        expr: |
+          histogram_quantile(0.95,
+            rate(servalsheets_tool_call_duration_seconds_bucket[10m])
+          ) > 10
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/high-latency.md
+        annotations:
+          summary: "P95 tool call latency above 10 seconds"
+          description: "95th percentile latency for tool {{ $labels.tool }} is {{ humanizeDuration $value }}."
+
+      - alert: SlowGoogleApi
+        expr: |
+          histogram_quantile(0.95,
+            rate(servalsheets_google_api_duration_seconds_bucket[10m])
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/slow-google-api.md
+        annotations:
+          summary: "P95 Google API latency above 5 seconds ({{ $labels.method }})"
+          description: "Google Sheets API method {{ $labels.method }} P95 latency is {{ humanizeDuration $value }}."

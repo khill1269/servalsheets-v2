@@ -1,0 +1,39 @@
+name: File Size Check
+
+on:
+  pull_request:
+    paths:
+      - 'src/**/*.ts'
+      - 'scripts/check-file-sizes.sh'
+  push:
+    branches:
+      - main
+      - feat/**
+    paths:
+      - 'src/**/*.ts'
+      - 'scripts/check-file-sizes.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  check-file-sizes:
+    name: Check File Sizes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Make script executable
+        run: chmod +x scripts/check-file-sizes.sh
+
+      - name: Check file sizes
+        run: bash scripts/check-file-sizes.sh
+
+      - name: Report results
+        if: always()
+        run: |
+          echo "File size check completed"
+          echo "See job output for details"

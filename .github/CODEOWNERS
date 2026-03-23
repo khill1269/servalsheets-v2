@@ -1,0 +1,8 @@
+# Default ownership
+* @khill1269
+
+# GitHub automation and release surfaces
+/.github/ @khill1269
+/package.json @khill1269
+/package-lock.json @khill1269
+/Dockerfile @khill1269

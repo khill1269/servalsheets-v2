@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ServalSheets MCP Startup Analysis</title>
+<style>
+  :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8; --green: #4ade80; --yellow: #fbbf24; --red: #f87171; --purple: #a78bfa; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 2rem; line-height: 1.6; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.3rem; color: var(--accent); margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  h3 { font-size: 1.1rem; color: var(--muted); margin: 1.5rem 0 0.5rem; }
+  .subtitle { color: var(--muted); margin-bottom: 2rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin: 1rem 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+  .card h4 { color: var(--accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+  .stat { font-size: 2rem; font-weight: 700; }
+  .stat-label { color: var(--muted); font-size: 0.85rem; }
+  .bar-chart { margin: 0.5rem 0; }
+  .bar-row { display: flex; align-items: center; margin: 4px 0; font-size: 0.8rem; }
+  .bar-label { width: 160px; text-align: right; padding-right: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; background: #0f172a; border-radius: 4px; height: 22px; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 0.75rem; color: white; font-weight: 600; min-width: 40px; transition: width 0.5s; }
+  .bar-size { width: 80px; text-align: right; padding-left: 8px; color: var(--muted); font-size: 0.75rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.85rem; }
+  th { text-align: left; padding: 8px 12px; background: #0f172a; color: var(--accent); font-weight: 600; border-bottom: 2px solid var(--border); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  tr:hover td { background: rgba(56, 189, 248, 0.05); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+  .badge-green { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+  .badge-yellow { background: rgba(251, 191, 36, 0.15); color: var(--yellow); }
+  .badge-red { background: rgba(248, 113, 113, 0.15); color: var(--red); }
+  .badge-purple { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
+  .badge-blue { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+  .flow { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
+  .flow-step { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.85rem; }
+  .flow-arrow { color: var(--accent); font-size: 1.2rem; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0.5rem 0; }
+  .pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; color: var(--accent); }
+  .section-note { background: rgba(251, 191, 36, 0.08); border-left: 3px solid var(--yellow); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin: 1rem 0; font-size: 0.85rem; color: var(--yellow); }
+  .code-block { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-family: 'SF Mono', Menlo, monospace; font-size: 0.8rem; overflow-x: auto; white-space: pre; margin: 0.5rem 0; color: var(--muted); }
+  .donut-container { display: flex; justify-content: center; align-items: center; gap: 2rem; margin: 1rem 0; }
+  .legend { font-size: 0.8rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .collapsible { cursor: pointer; user-select: none; }
+  .collapsible::before { content: '▶ '; font-size: 0.8em; color: var(--accent); }
+  .collapsible.open::before { content: '▼ '; }
+  .collapse-content { display: none; margin-top: 0.5rem; }
+  .collapse-content.show { display: block; }
+</style>
+</head>
+<body>
+
+<h1>ServalSheets MCP Startup Analysis</h1>
+<p class="subtitle">What Claude sees when your server first loads &mdash; captured via live STDIO probe, March 17 2026</p>
+
+<!-- TOP-LEVEL STATS -->
+<div class="grid">
+  <div class="card">
+    <h4>Total Startup Payload</h4>
+    <div class="stat">2.56 MB</div>
+    <div class="stat-label">2,682,431 bytes across 5 MCP responses</div>
+  </div>
+  <div class="card">
+    <h4>Tools Registered</h4>
+    <div class="stat">25</div>
+    <div class="stat-label">402 total actions via discriminated unions</div>
+  </div>
+  <div class="card">
+    <h4>Server Instructions</h4>
+    <div class="stat">44 KB</div>
+    <div class="stat-label">737 lines of LLM routing guidance</div>
+  </div>
+  <div class="card">
+    <h4>Resources Available</h4>
+    <div class="stat">68</div>
+    <div class="stat-label">+ 12 URI templates for dynamic content</div>
+  </div>
+  <div class="card">
+    <h4>Guided Prompts</h4>
+    <div class="stat">48</div>
+    <div class="stat-label">Interactive workflows with parameter schemas</div>
+  </div>
+  <div class="card">
+    <h4>Protocol Version</h4>
+    <div class="stat" style="font-size:1.5rem">2025-11-25</div>
+    <div class="stat-label">Latest MCP spec with Tasks, Sampling, Elicitation</div>
+  </div>
+</div>
+
+<!-- MCP HANDSHAKE FLOW -->
+<h2>MCP Handshake Flow</h2>
+<div class="flow">
+  <div class="flow-step"><strong>initialize</strong><br><small>49 KB &bull; capabilities + instructions</small></div>
+  <div class="flow-arrow">&rarr;</div>
+  <div class="flow-step"><strong>initialized</strong><br><small>notification (client&rarr;server)</small></div>
+  <div class="flow-arrow">&rarr;</div>
+  <div class="flow-step"><strong>tools/list</strong><br><small>2,541 KB &bull; 25 tools + schemas</small></div>
+  <div class="flow-arrow">&rarr;</div>
+  <div class="flow-step"><strong>resources/list</strong><br><small>14.5 KB &bull; 68 resources</small></div>
+  <div class="flow-arrow">&rarr;</div>
+  <div class="flow-step"><strong>prompts/list</strong><br><small>12.3 KB &bull; 48 prompts</small></div>
+</div>
+
+<!-- PAYLOAD COMPOSITION -->
+<h2>Payload Composition</h2>
+
+<div class="bar-chart">
+  <div class="bar-row">
+    <div class="bar-label">Tool Input Schemas</div>
+    <div class="bar-track"><div class="bar-fill" style="width:62.6%;background:var(--accent)">62.6%</div></div>
+    <div class="bar-size">1,639 KB</div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">Other (names, structure)</div>
+    <div class="bar-track"><div class="bar-fill" style="width:34%;background:var(--purple)">34.0%</div></div>
+    <div class="bar-size">892 KB</div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">Server Instructions</div>
+    <div class="bar-track"><div class="bar-fill" style="width:1.7%;background:var(--green);min-width:60px">1.7%</div></div>
+    <div class="bar-size">44 KB</div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">Resources List</div>
+    <div class="bar-track"><div class="bar-fill" style="width:0.6%;background:var(--yellow);min-width:50px">0.6%</div></div>
+    <div class="bar-size">14.5 KB</div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">Prompts List</div>
+    <div class="bar-track"><div class="bar-fill" style="width:0.5%;background:var(--red);min-width:50px">0.5%</div></div>
+    <div class="bar-size">12.3 KB</div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">Descriptions + Annotations</div>
+    <div class="bar-track"><div class="bar-fill" style="width:0.4%;background:#818cf8;min-width:60px">0.4%</div></div>
+    <div class="bar-size">10.9 KB</div>
+  </div>
+</div>
+
+<div class="section-note">
+  <strong>Key finding:</strong> Tool schemas consume 62.6% of the startup payload. The top 5 heaviest tools (format, dimensions, advanced, data, visualize) account for 912 KB alone &mdash; more than 1/3 of the total.
+</div>
+
+<!-- TOOL SCHEMA SIZES -->
+<h2>Tool Schema Sizes (Heaviest First)</h2>
+
+<div class="bar-chart">
+  <div class="bar-row"><div class="bar-label">sheets_format</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:#f87171">241 KB</div></div><div class="bar-size">246,805 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_dimensions</div><div class="bar-track"><div class="bar-fill" style="width:75.6%;background:#fb923c">182 KB</div></div><div class="bar-size">186,540 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_advanced</div><div class="bar-track"><div class="bar-fill" style="width:74.3%;background:#fbbf24">179 KB</div></div><div class="bar-size">183,380 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_data</div><div class="bar-track"><div class="bar-fill" style="width:62.1%;background:#a3e635">150 KB</div></div><div class="bar-size">153,204 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_visualize</div><div class="bar-track"><div class="bar-fill" style="width:57.8%;background:#4ade80">139 KB</div></div><div class="bar-size">142,532 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_collaborate</div><div class="bar-track"><div class="bar-fill" style="width:38.5%;background:#2dd4bf">93 KB</div></div><div class="bar-size">95,007 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_compute</div><div class="bar-track"><div class="bar-fill" style="width:37.8%;background:#38bdf8">91 KB</div></div><div class="bar-size">93,313 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_analyze</div><div class="bar-track"><div class="bar-fill" style="width:33.6%;background:#818cf8">81 KB</div></div><div class="bar-size">82,880 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_composite</div><div class="bar-track"><div class="bar-fill" style="width:32.7%;background:#a78bfa">79 KB</div></div><div class="bar-size">80,699 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_bigquery</div><div class="bar-track"><div class="bar-fill" style="width:27.7%;background:#c084fc">67 KB</div></div><div class="bar-size">68,456 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_connectors</div><div class="bar-track"><div class="bar-fill" style="width:23.3%;background:#e879f9">56 KB</div></div><div class="bar-size">57,578 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_core</div><div class="bar-track"><div class="bar-fill" style="width:21.3%;background:#f472b6">51 KB</div></div><div class="bar-size">52,632 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_appsscript</div><div class="bar-track"><div class="bar-fill" style="width:16.4%;background:#fb7185">39 KB</div></div><div class="bar-size">40,357 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_session</div><div class="bar-track"><div class="bar-fill" style="width:15.9%;background:#94a3b8">38 KB</div></div><div class="bar-size">39,123 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_agent</div><div class="bar-track"><div class="bar-fill" style="width:15.1%;background:#64748b">36 KB</div></div><div class="bar-size">37,380 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_quality</div><div class="bar-track"><div class="bar-fill" style="width:10.9%;background:#475569">26 KB</div></div><div class="bar-size">27,023 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_fix</div><div class="bar-track"><div class="bar-fill" style="width:7.7%;background:#475569">19 KB</div></div><div class="bar-size">19,071 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_confirm</div><div class="bar-track"><div class="bar-fill" style="width:5.7%;background:#475569">14 KB</div></div><div class="bar-size">14,010 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_history</div><div class="bar-track"><div class="bar-fill" style="width:5.6%;background:#475569">13 KB</div></div><div class="bar-size">13,784 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_templates</div><div class="bar-track"><div class="bar-fill" style="width:5.1%;background:#475569">12 KB</div></div><div class="bar-size">12,585 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_transaction</div><div class="bar-track"><div class="bar-fill" style="width:4.4%;background:#475569">11 KB</div></div><div class="bar-size">10,932 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_dependencies</div><div class="bar-track"><div class="bar-fill" style="width:3.8%;background:#475569">9 KB</div></div><div class="bar-size">9,380 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_auth</div><div class="bar-track"><div class="bar-fill" style="width:2.8%;background:#475569">7 KB</div></div><div class="bar-size">6,960 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_webhook</div><div class="bar-track"><div class="bar-fill" style="width:1.6%;background:#475569">4 KB</div></div><div class="bar-size">3,847 B</div></div>
+  <div class="bar-row"><div class="bar-label">sheets_federation</div><div class="bar-track"><div class="bar-fill" style="width:0.5%;background:#475569;min-width:40px">1 KB</div></div><div class="bar-size">1,335 B</div></div>
+</div>
+
+<!-- CAPABILITIES -->
+<h2>Declared Capabilities</h2>
+<div class="grid">
+  <div class="card">
+    <h4>resources</h4>
+    <div class="pill-row">
+      <span class="pill">subscribe: true</span>
+      <span class="pill">listChanged: true</span>
+    </div>
+    <div style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">Clients can subscribe to resource changes and get notified when list updates</div>
+  </div>
+  <div class="card">
+    <h4>tasks (SEP-1686)</h4>
+    <div class="pill-row">
+      <span class="pill">list</span>
+      <span class="pill">cancel</span>
+      <span class="pill">requests.tools.call</span>
+    </div>
+    <div style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">Background execution with progress tracking on 9+ tools</div>
+  </div>
+  <div class="card">
+    <h4>tools</h4>
+    <div class="pill-row">
+      <span class="pill">listChanged: true</span>
+    </div>
+    <div style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">Staged registration &mdash; tools arrive in waves with notifications</div>
+  </div>
+  <div class="card">
+    <h4>logging</h4>
+    <div class="pill-row"><span class="pill">dynamic log level</span></div>
+    <div style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">Client can change log verbosity at runtime</div>
+  </div>
+  <div class="card">
+    <h4>completions</h4>
+    <div class="pill-row"><span class="pill">argument autocompletion</span></div>
+    <div style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">Autocomplete spreadsheetId, ranges, action names</div>
+  </div>
+  <div class="card">
+    <h4>prompts</h4>
+    <div class="pill-row"><span class="pill">listChanged: true</span></div>
+    <div style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">48 guided workflows with argsSchema</div>
+  </div>
+</div>
+
+<!-- ANNOTATIONS -->
+<h2>Tool Annotations (MCP 2025-11-25 Hints)</h2>
+<table>
+  <thead>
+    <tr><th>Tool</th><th>Title</th><th>readOnly</th><th>destructive</th><th>idempotent</th><th>openWorld</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>sheets_auth</td><td>Authentication</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-green">false</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_core</td><td>Core Operations</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_data</td><td>Data Operations</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_format</td><td>Cell Formatting & Rules</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-green">true</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_dimensions</td><td>Rows, Columns, Filters & Sort</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_visualize</td><td>Visualizations</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_collaborate</td><td>Collaboration</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_advanced</td><td>Advanced Features</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_analyze</td><td>Ultimate Data Analysis</td><td><span class="badge badge-green">true</span></td><td><span class="badge badge-green">false</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_quality</td><td>Quality Assurance</td><td><span class="badge badge-green">true</span></td><td><span class="badge badge-green">false</span></td><td><span class="badge badge-green">true</span></td><td><span class="badge badge-green">false</span></td></tr>
+    <tr><td>sheets_compute</td><td>Computation Engine</td><td><span class="badge badge-green">true</span></td><td><span class="badge badge-green">false</span></td><td><span class="badge badge-green">true</span></td><td><span class="badge badge-green">false</span></td></tr>
+    <tr><td>sheets_confirm</td><td>Plan Confirmation</td><td><span class="badge badge-green">true</span></td><td><span class="badge badge-green">false</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_session</td><td>Session Context</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-green">false</span></td><td><span class="badge badge-green">true</span></td><td><span class="badge badge-green">false</span></td></tr>
+    <tr><td>sheets_history</td><td>Operation History & Undo</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-green">false</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-green">false</span></td></tr>
+    <tr><td>sheets_fix</td><td>Automated Issue Fixing</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_composite</td><td>Composite Operations</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_templates</td><td>Templates</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_bigquery</td><td>BigQuery Integration</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_appsscript</td><td>Apps Script Automation</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_transaction</td><td>Transaction Support</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_dependencies</td><td>Formula Dependencies</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_webhook</td><td>Webhook Management</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_federation</td><td>MCP Server Federation</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-green">false</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_agent</td><td>Agentic Execution</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-red">true</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+    <tr><td>sheets_connectors</td><td>Live Data Connectors</td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-green">false</span></td><td><span class="badge badge-red">false</span></td><td><span class="badge badge-yellow">true</span></td></tr>
+  </tbody>
+</table>
+
+<!-- RESOURCES -->
+<h2>Resource Categories (68 static + 12 templates)</h2>
+<div class="grid">
+  <div class="card">
+    <h4>Spreadsheet Data (2 templates)</h4>
+    <div class="pill-row">
+      <span class="pill">sheets:///{id}</span>
+      <span class="pill">sheets:///{id}/{range}</span>
+      <span class="pill">sheets:///{id}/context</span>
+      <span class="pill">sheets:///{id}/charts</span>
+      <span class="pill">sheets:///{id}/pivots</span>
+      <span class="pill">sheets:///{id}/quality</span>
+    </div>
+  </div>
+  <div class="card">
+    <h4>Metrics & Health (10)</h4>
+    <div class="pill-row">
+      <span class="pill">metrics://summary</span>
+      <span class="pill">metrics://dashboard</span>
+      <span class="pill">metrics://operations</span>
+      <span class="pill">metrics://cache</span>
+      <span class="pill">metrics://api</span>
+      <span class="pill">metrics://system</span>
+      <span class="pill">health://connection</span>
+      <span class="pill">health://restart</span>
+    </div>
+  </div>
+  <div class="card">
+    <h4>Knowledge & Guides (8)</h4>
+    <div class="pill-row">
+      <span class="pill">knowledge:///index</span>
+      <span class="pill">knowledge:///search</span>
+      <span class="pill">servalsheets://guides/*</span>
+      <span class="pill">servalsheets://reference/*</span>
+      <span class="pill">servalsheets://decisions/*</span>
+      <span class="pill">servalsheets://examples/*</span>
+      <span class="pill">servalsheets://patterns/*</span>
+    </div>
+  </div>
+  <div class="card">
+    <h4>Service Internals (20+)</h4>
+    <div class="pill-row">
+      <span class="pill">history://operations</span>
+      <span class="pill">cache://stats</span>
+      <span class="pill">transaction://stats</span>
+      <span class="pill">conflict://stats</span>
+      <span class="pill">impact://stats</span>
+      <span class="pill">validation://stats</span>
+      <span class="pill">analyze://results</span>
+      <span class="pill">schema://tools</span>
+      <span class="pill">billing://dashboard</span>
+    </div>
+  </div>
+</div>
+
+<!-- SERVER INSTRUCTIONS STRUCTURE -->
+<h2>Server Instructions Structure (44 KB, 737 lines)</h2>
+<p style="color:var(--muted);margin-bottom:1rem">This is the rich LLM context Claude receives in the <code>initialize</code> response. It teaches Claude how to route requests to the right tools.</p>
+
+<table>
+  <thead><tr><th>Section</th><th>Purpose</th><th>~Lines</th></tr></thead>
+  <tbody>
+    <tr><td>Step 1: Authentication</td><td>Mandatory auth flow before any operation</td><td>~15</td></tr>
+    <tr><td>Step 2: Set Context</td><td>Set active spreadsheet for natural language</td><td>~10</td></tr>
+    <tr><td>Workflow Chain</td><td>Optimal operation sequence</td><td>~5</td></tr>
+    <tr><td>Tool Selection Decision Tree</td><td>If/then routing for all 402 actions</td><td>~200</td></tr>
+    <tr><td>Quick Routing Matrix</td><td>User intent &rarr; tool mapping table</td><td>~30</td></tr>
+    <tr><td>Critical Rules (9)</td><td>Anti-patterns to avoid</td><td>~30</td></tr>
+    <tr><td>Error Recovery</td><td>Error codes + fix patterns</td><td>~60</td></tr>
+    <tr><td>Performance Tiers</td><td>Latency expectations per operation type</td><td>~15</td></tr>
+    <tr><td>MCP Protocol Features</td><td>Sampling, Elicitation, Tasks, Transactions</td><td>~30</td></tr>
+    <tr><td>Common Patterns</td><td>Copy-paste ready tool chains</td><td>~10</td></tr>
+    <tr><td>Tool Chaining Workflows</td><td>15+ multi-step workflow recipes</td><td>~60</td></tr>
+    <tr><td>Interactive Wizards</td><td>Elicitation-powered forms</td><td>~15</td></tr>
+    <tr><td>Range Strategy</td><td>Priority-ordered data fetching</td><td>~25</td></tr>
+    <tr><td>Anti-Patterns</td><td>What NOT to do</td><td>~15</td></tr>
+    <tr><td>Examples</td><td>15+ "User says X &rarr; do Y" examples</td><td>~80</td></tr>
+    <tr><td>Advanced Sheet Patterns</td><td>Complex multi-tool recipes</td><td>~40</td></tr>
+    <tr><td>Quota & Monitoring</td><td>Rate limits, savings strategies</td><td>~25</td></tr>
+    <tr><td>Color Format</td><td>0-1 scale reminder</td><td>~5</td></tr>
+    <tr><td>Resource Discovery</td><td>How to find knowledge resources</td><td>~10</td></tr>
+    <tr><td>Inline Parameter Hints</td><td>Using x-servalsheets.actionParams</td><td>~10</td></tr>
+  </tbody>
+</table>
+
+<!-- WEBHOOK NOTE -->
+<h2>Notable Observations</h2>
+
+<div class="grid">
+  <div class="card" style="border-color:var(--yellow)">
+    <h4 style="color:var(--yellow)">Schema Weight Issue</h4>
+    <p style="font-size:0.85rem">sheets_format alone is <strong>241 KB</strong> of JSON Schema &mdash; nearly 10% of the entire startup payload. The top 5 tools (format, dimensions, advanced, data, visualize) are 912 KB combined. Consider DEFER_SCHEMAS mode to reduce cold-start context window consumption.</p>
+  </div>
+  <div class="card" style="border-color:var(--green)">
+    <h4 style="color:var(--green)">Excellent Routing Guidance</h4>
+    <p style="font-size:0.85rem">The 737-line server instructions include a comprehensive decision tree, 15+ worked examples, and a quick routing matrix. This is unusually thorough for an MCP server and should significantly reduce tool selection errors.</p>
+  </div>
+  <div class="card" style="border-color:var(--accent)">
+    <h4 style="color:var(--accent)">Rich Resource Ecosystem</h4>
+    <p style="font-size:0.85rem">68 resources + 12 templates provide on-demand knowledge (guides, patterns, examples, decision trees, schema details) without bloating the initial payload. The <code>knowledge:///search</code> resource enables fuzzy search across all documentation.</p>
+  </div>
+  <div class="card" style="border-color:var(--purple)">
+    <h4 style="color:var(--purple)">Missing: Tool Icons</h4>
+    <p style="font-size:0.85rem">Icons are declared in <code>serverInfo</code> (server-level icon present) but individual tool-level <code>icons</code> arrays are empty (0 per tool). The code generates 25 SVG icons but they may not be wired into <code>tools/list</code> output.</p>
+  </div>
+  <div class="card" style="border-color:var(--red)">
+    <h4 style="color:var(--red)">0-Action Schemas</h4>
+    <p style="font-size:0.85rem"><code>sheets_collaborate</code> and <code>sheets_federation</code> show 0 action variants in oneOf/anyOf. Their schemas may use a different discriminated union structure (flat z.object vs nested oneOf), which could impact Claude's ability to discover valid actions.</p>
+  </div>
+  <div class="card" style="border-color:var(--yellow)">
+    <h4 style="color:var(--yellow)">Webhook Actions Hidden</h4>
+    <p style="font-size:0.85rem"><code>sheets_webhook</code> shows only 4 of 10 actions. The other 6 (register, unregister, list, get, test, get_stats) are hidden because Redis is not connected &mdash; this is the <code>enrichInputSchema()</code> filter working correctly.</p>
+  </div>
+</div>
+
+<!-- PROMPTS OVERVIEW -->
+<h2>Prompt Categories (48 total)</h2>
+<div class="grid">
+  <div class="card"><h4>Onboarding (3)</h4><div class="pill-row"><span class="pill">welcome</span><span class="pill">test_connection</span><span class="pill">first_operation</span></div></div>
+  <div class="card"><h4>Analysis (6)</h4><div class="pill-row"><span class="pill">analyze_spreadsheet</span><span class="pill">diagnose_errors</span><span class="pill">auto_analyze</span><span class="pill">ultimate_analysis</span><span class="pill">analyze_with_history</span><span class="pill">compare_spreadsheets</span></div></div>
+  <div class="card"><h4>Data Quality (5)</h4><div class="pill-row"><span class="pill">clean_data</span><span class="pill">automated_data_cleaning</span><span class="pill">fix_data_quality</span><span class="pill">masterclass_data_quality</span><span class="pill">challenge_quality_detective</span></div></div>
+  <div class="card"><h4>Operations (6)</h4><div class="pill-row"><span class="pill">transform_data</span><span class="pill">create_report</span><span class="pill">setup_budget</span><span class="pill">import_data</span><span class="pill">bulk_import_data</span><span class="pill">bulk_import</span></div></div>
+  <div class="card"><h4>Advanced (8)</h4><div class="pill-row"><span class="pill">generate_sheet</span><span class="pill">what_if_scenario</span><span class="pill">smart_suggestions</span><span class="pill">cross_sheet_federation</span><span class="pill">batch_optimizer</span><span class="pill">performance_audit</span><span class="pill">audit_sheet</span><span class="pill">data_pipeline</span></div></div>
+  <div class="card"><h4>Safety & Recovery (5)</h4><div class="pill-row"><span class="pill">safe_operation</span><span class="pill">undo_changes</span><span class="pill">recover_from_error</span><span class="pill">when_to_confirm</span><span class="pill">confirmation_examples</span></div></div>
+</div>
+
+<div style="margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--muted);font-size:0.8rem;text-align:center">
+  Generated by live STDIO MCP probe &bull; ServalSheets v1.7.0 &bull; MCP 2025-11-25 &bull; 25 tools, 402 actions
+</div>
+
+</body>
+</html>

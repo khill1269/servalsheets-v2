@@ -1,0 +1,47 @@
+{
+  "planId": "77188912-6778-4924-b27d-2e2a4b62a20b",
+  "description": "read data from spreadsheet",
+  "spreadsheetId": "test-spreadsheet-abc",
+  "steps": [
+    {
+      "stepId": "77188912-6778-4924-b27d-2e2a4b62a20b-step-0",
+      "tool": "sheets_data",
+      "action": "read",
+      "description": "Read data",
+      "params": {
+        "spreadsheetId": "test-spreadsheet-abc",
+        "verbosity": "standard",
+        "range": {
+          "a1": "Sheet1!A1:B5"
+        },
+        "valueRenderOption": "FORMATTED_VALUE",
+        "majorDimension": "ROWS",
+        "chunkSize": 1000,
+        "response_format": "full"
+      }
+    }
+  ],
+  "status": "paused",
+  "results": [
+    {
+      "stepId": "77188912-6778-4924-b27d-2e2a4b62a20b-step-0",
+      "success": false,
+      "error": "step failed",
+      "startedAt": "2026-03-23T10:15:23.214Z",
+      "completedAt": "2026-03-23T10:15:23.214Z"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpointId": "04914927-3dc5-48ac-8a34-808e2e0bf813",
+      "planId": "77188912-6778-4924-b27d-2e2a4b62a20b",
+      "stepIndex": 0,
+      "context": "Before step: Read data",
+      "timestamp": "2026-03-23T10:15:23.214Z"
+    }
+  ],
+  "createdAt": "2026-03-23T10:15:23.214Z",
+  "updatedAt": "2026-03-23T10:15:23.214Z",
+  "currentStepIndex": 0,
+  "error": "step failed"
+}

@@ -1,0 +1,181 @@
+#!/bin/bash
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# -----------------------------------------------------------------------
+# SECRET SCANNER — runs on all staged files (Class 8 regression guard)
+# Catches Google OAuth secrets, API keys, private keys before they commit.
+# ISSUE-223: real OAuth secret was committed; this check prevents recurrence.
+# -----------------------------------------------------------------------
+STAGED_ALL=$(git diff --cached --name-only --diff-filter=ACMR || true)
+if [ -n "$STAGED_ALL" ]; then
+  SECRET_HITS=""
+
+  # Check staged content (not working tree) via git show :<file>
+  while IFS= read -r staged_file; do
+    # Skip binary files and known-safe generated files
+    case "$staged_file" in
+      *.png|*.jpg|*.ico|*.woff*|*.ttf|package-lock.json) continue ;;
+      .husky/*) continue ;; # skip self-scan (scanner contains its own detection patterns)
+    esac
+
+    file_content=$(git show ":$staged_file" 2>/dev/null || true)
+
+    # Google OAuth client secret (GOCSPX- prefix is always a real secret)
+    if echo "$file_content" | grep -qE 'GOCSPX-[A-Za-z0-9_-]{20,}'; then
+      SECRET_HITS="$SECRET_HITS\n  ❌ $staged_file — Google OAuth client secret (GOCSPX-)"
+    fi
+
+    # Google OAuth refresh/access token
+    if echo "$file_content" | grep -qP '(?<!REPLACE_WITH_REAL_)ya29\.[A-Za-z0-9_-]{20,}' 2>/dev/null || \
+       echo "$file_content" | grep -qE 'ya29\.[A-Za-z0-9_-]{20,}'; then
+      SECRET_HITS="$SECRET_HITS\n  ❌ $staged_file — Google OAuth token (ya29.)"
+    fi
+
+    # Google API key
+    if echo "$file_content" | grep -qE 'AIza[0-9A-Za-z_-]{35}'; then
+      SECRET_HITS="$SECRET_HITS\n  ❌ $staged_file — Google API key (AIza)"
+    fi
+
+    # Stripe live secret key
+    if echo "$file_content" | grep -qE 'sk_live_[0-9a-zA-Z]{24,}'; then
+      SECRET_HITS="$SECRET_HITS\n  ❌ $staged_file — Stripe live secret key (sk_live_)"
+    fi
+
+    # PEM private key
+    if echo "$file_content" | grep -qF 'BEGIN RSA PRIVATE KEY' || \
+       echo "$file_content" | grep -qF 'BEGIN PRIVATE KEY'; then
+      SECRET_HITS="$SECRET_HITS\n  ❌ $staged_file — PEM private key block"
+    fi
+
+  done <<EOF
+$STAGED_ALL
+EOF
+
+  if [ -n "$SECRET_HITS" ]; then
+    echo "❌ SECRET SCANNER: Potential credentials detected in staged files:"
+    echo -e "$SECRET_HITS"
+    echo ""
+    echo "   To skip (if this is a false positive): git commit --no-verify"
+    echo "   To fix: remove the credential and use an env var or placeholder sentinel."
+    exit 1
+  fi
+fi
+# -----------------------------------------------------------------------
+
+# Get staged TypeScript files
+STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.ts$' || true)
+
+if [ -n "$STAGED_TS_FILES" ]; then
+  # Check if handler files were modified
+  STAGED_HANDLERS=$(echo "$STAGED_TS_FILES" | tr ' ' '\n' | grep '^src/handlers/' || true)
+
+  if [ -n "$STAGED_HANDLERS" ]; then
+    echo "  → Checking schema-handler alignment (handler files modified)"
+    npm run validate:alignment || { echo "❌ Schema-handler alignment check failed"; exit 1; }
+  fi
+
+  # Check if schema files were modified
+  STAGED_SCHEMAS=$(echo "$STAGED_TS_FILES" | tr ' ' '\n' | grep '^src/schemas/' || true)
+
+  if [ -n "$STAGED_SCHEMAS" ]; then
+    echo "  → Regenerating metadata (schema files modified)"
+    npm run gen:metadata
+    echo "  → Validating schema-handler alignment"
+    npm run validate:alignment || { echo "❌ Schema-handler alignment check failed"; exit 1; }
+  fi
+
+  # Run checks in parallel for speed
+  echo "  → Checking metadata drift"
+  npm run check:drift &
+  PID_DRIFT=$!
+
+  echo "  → Checking for placeholders"
+  npm run check:placeholders &
+  PID_PLACEHOLDER=$!
+
+  echo "  → Checking for debug prints"
+  npm run check:debug-prints &
+  PID_DEBUG=$!
+
+  echo "  → Checking for silent fallbacks"
+  npm run check:silent-fallbacks &
+  PID_SILENT=$!
+
+  echo "  → Checking integration wiring"
+  npm run check:integration-wiring &
+  PID_INTEGRATION=$!
+
+  # Wait for all background jobs
+  wait $PID_DRIFT || { echo "❌ Metadata drift check failed"; exit 1; }
+  wait $PID_PLACEHOLDER || { echo "❌ Placeholder check failed"; exit 1; }
+  wait $PID_DEBUG || { echo "❌ Debug print check failed"; exit 1; }
+  wait $PID_SILENT || { echo "❌ Silent fallback check failed"; exit 1; }
+  wait $PID_INTEGRATION || { echo "❌ Integration wiring check failed"; exit 1; }
+
+  echo "✅ Pre-commit checks passed"
+fi
+
+# Check for staged markdown files
+# Exclude paths listed in .markdownlintignore (auto-generated, internal)
+STAGED_MD_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.md$' | grep -v '^\.serval/' | grep -v '^\.claude/' | grep -v '^docs/archive/' | grep -v '^docs/generated/' | grep -v '^docs/research/' | grep -v '^docs/testing/' || true)
+
+if [ -n "$STAGED_MD_FILES" ]; then
+  # Check for audit documents
+  STAGED_AUDITS=$(echo "$STAGED_MD_FILES" | tr ' ' '\n' | grep -E '_AUDIT\.md$|_ANALYSIS\.md$|_REPORT\.md$' || true)
+
+  if [ -n "$STAGED_AUDITS" ]; then
+    echo "  → Validating audit document(s)"
+    for AUDIT in $STAGED_AUDITS; do
+      npm run validate:audit "$AUDIT" || { echo "❌ Audit validation failed for $AUDIT"; exit 1; }
+    done
+  fi
+
+  echo "📝 Running documentation checks..."
+
+  # Lint only the staged markdown files
+  echo "  → Linting staged markdown files"
+  echo "$STAGED_MD_FILES" | xargs npx markdownlint-cli2 || { echo "❌ Markdown lint failed"; exit 1; }
+
+  # Validate frontmatter in docs/ markdown files
+  STAGED_DOCS_MD=$(echo "$STAGED_MD_FILES" | tr ' ' '\n' | grep '^docs/' || true)
+  if [ -n "$STAGED_DOCS_MD" ]; then
+    echo "  → Validating frontmatter"
+    echo "$STAGED_DOCS_MD" | xargs npx tsx scripts/check-frontmatter.ts || { echo "❌ Frontmatter validation failed"; exit 1; }
+  fi
+
+  # Verify documentation action counts — check ALL staged docs for stale counts
+  echo "  → Verifying action counts in staged docs"
+  # Count only non-historical stale references (HISTORICAL ones are intentional; skip Total line)
+  STALE_COUNT=$(node scripts/sync-doc-counts.mjs 2>/dev/null | grep "stale reference" | grep -v "HISTORICAL\|^Total" | wc -l | tr -d ' ' || echo 0)
+  if [ "$STALE_COUNT" -gt "0" ]; then
+    echo "❌ Staged docs contain stale action/tool counts. Run: npm run docs:sync"
+    node scripts/sync-doc-counts.mjs 2>/dev/null | grep "^docs\|^src\|^README\|^CLAUDE" | grep -v "HISTORICAL" | head -20
+    exit 1
+  fi
+
+  # Legacy check: explicit README.md / SKILL.md count verification
+  if echo "$STAGED_MD_FILES" | grep -q "README.md\|docs/guides/SKILL.md"; then
+    # Dynamically read expected counts from source of truth
+    EXPECTED=$(node -e "const {TOOL_COUNT,ACTION_COUNT}=require('./src/schemas/action-counts.ts');console.log(\`\${TOOL_COUNT} tools, \${ACTION_COUNT} actions\`);")
+    EXPECTED_WITH=$(echo "$EXPECTED" | sed 's/, / with /')
+
+    if ! grep -q "$EXPECTED" README.md; then
+      echo "❌ README.md has incorrect action count. Expected '$EXPECTED' but not found"
+      echo "   Source of truth: src/schemas/action-counts.ts"
+      exit 1
+    fi
+
+    if ! grep -q "$EXPECTED_WITH" docs/guides/SKILL.md; then
+      echo "❌ SKILL.md has incorrect action count. Expected '$EXPECTED_WITH' but not found"
+      echo "   Source of truth: src/schemas/action-counts.ts"
+      exit 1
+    fi
+  fi
+
+  echo "✅ Documentation checks passed"
+fi
+
+# Run lint-staged (formats and lints)
+npx lint-staged

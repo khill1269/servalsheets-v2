@@ -1,0 +1,286 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css" />
+    <style>
+      body {
+        font-family: 'Google Sans', Arial, sans-serif;
+        padding: 20px;
+        font-size: 14px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #202124;
+      }
+
+      input[type='text'] {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: inherit;
+      }
+
+      input[type='text']:focus {
+        outline: none;
+        border-color: #4285f4;
+      }
+
+      .help-text {
+        font-size: 12px;
+        color: #5f6368;
+        margin-top: 4px;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 8px;
+        margin-top: 20px;
+      }
+
+      button {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .primary-button {
+        background: #4285f4;
+        color: white;
+      }
+
+      .primary-button:hover {
+        background: #1a73e8;
+      }
+
+      .secondary-button {
+        background: #f8f9fa;
+        color: #5f6368;
+        border: 1px solid #dadce0;
+      }
+
+      .secondary-button:hover {
+        background: #e8eaed;
+      }
+
+      .alert {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        display: none;
+      }
+
+      .alert.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .alert.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .info-box {
+        background: #e8f0fe;
+        border-left: 4px solid #4285f4;
+        padding: 12px;
+        margin-bottom: 20px;
+        font-size: 13px;
+      }
+
+      .info-box a {
+        color: #1a73e8;
+        text-decoration: none;
+      }
+
+      .info-box a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="alert" class="alert"></div>
+
+    <div class="info-box">
+      <strong>Need an API key?</strong><br />
+      For local testing, start your ServalSheets server and it will work without an API key.<br />
+      For production, get your API key at
+      <a href="https://servalsheets.com" target="_blank">servalsheets.com</a>
+    </div>
+
+    <form onsubmit="saveSettings(event)">
+      <div class="form-group">
+        <label for="api-key">API Key</label>
+        <input
+          type="text"
+          id="api-key"
+          placeholder="sk_live_xxxxxxxxxxxxx or sk_test_xxxxxxxxxxxxx"
+          autocomplete="off"
+        />
+        <div class="help-text">
+          Your API key is stored securely in your Google account and never shared.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="environment">Environment</label>
+        <select
+          id="environment"
+          style="
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+          "
+        >
+          <option value="development">Development (localhost:3000)</option>
+          <option value="staging">Staging (staging-api.servalsheets.com)</option>
+          <option value="production">Production (api.servalsheets.com)</option>
+        </select>
+        <div class="help-text">
+          Environment is auto-detected or can be manually set here.
+          <span id="current-url" style="display: block; margin-top: 4px; font-weight: 500"></span>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button type="submit" class="primary-button">Save Settings</button>
+        <button type="button" class="secondary-button" onclick="testConnection()">
+          Test Connection
+        </button>
+        <button type="button" class="secondary-button" onclick="google.script.host.close()">
+          Cancel
+        </button>
+      </div>
+    </form>
+
+    <script>
+      function saveSettings(event) {
+        event.preventDefault();
+        const apiKey = document.getElementById('api-key').value.trim();
+        const environment = document.getElementById('environment').value;
+
+        if (!apiKey) {
+          showAlert('Please enter an API key', 'error');
+          return;
+        }
+
+        // Save API key first
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result.success) {
+              // Then save environment
+              google.script.run
+                .withSuccessHandler(function (envResult) {
+                  if (envResult.success) {
+                    showAlert('Settings saved successfully!', 'success');
+                    setTimeout(function () {
+                      google.script.host.close();
+                    }, 1500);
+                  } else {
+                    showAlert('Settings saved but environment update failed', 'error');
+                  }
+                })
+                .withFailureHandler(function (error) {
+                  showAlert(
+                    'Settings saved but environment update failed: ' + error.message,
+                    'error'
+                  );
+                })
+                .setEnvironment(environment);
+            } else {
+              showAlert('Failed to save settings', 'error');
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert('Error: ' + error.message, 'error');
+          })
+          .saveApiKey(apiKey);
+      }
+
+      function testConnection() {
+        showAlert('Testing connection...', 'success');
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result.success) {
+              showAlert(result.message, 'success');
+            } else {
+              showAlert(result.message, 'error');
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert('Connection test failed: ' + error.message, 'error');
+          })
+          .testConnection();
+      }
+
+      function showAlert(message, type) {
+        const alert = document.getElementById('alert');
+        alert.textContent = message;
+        alert.className = `alert ${type}`;
+        alert.style.display = 'block';
+      }
+
+      // Load current settings on open
+      window.addEventListener('load', function () {
+        // Load API key
+        google.script.run
+          .withSuccessHandler(function (apiKey) {
+            if (apiKey) {
+              document.getElementById('api-key').value = apiKey;
+            }
+          })
+          .getApiKey();
+
+        // Load environment
+        google.script.run
+          .withSuccessHandler(function (envInfo) {
+            if (envInfo) {
+              document.getElementById('environment').value = envInfo.environment;
+              updateCurrentUrl();
+            }
+          })
+          .getEnvironment();
+      });
+
+      // Update current URL display when environment changes
+      document.addEventListener('DOMContentLoaded', function () {
+        const envSelect = document.getElementById('environment');
+        if (envSelect) {
+          envSelect.addEventListener('change', updateCurrentUrl);
+        }
+      });
+
+      function updateCurrentUrl() {
+        const env = document.getElementById('environment').value;
+        const urlDisplay = document.getElementById('current-url');
+
+        const urls = {
+          development: 'http://localhost:3000',
+          staging: 'https://staging-api.servalsheets.com',
+          production: 'https://api.servalsheets.com',
+        };
+
+        urlDisplay.textContent = 'API URL: ' + urls[env];
+      }
+    </script>
+  </body>
+</html>

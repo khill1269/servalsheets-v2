@@ -1,0 +1,37 @@
+{
+  "name": "@servalsheets/gcloud-console-server",
+  "description": "MCP server for Google Cloud Console configuration and management",
+  "version": "1.0.0",
+  "author": "ServalSheets Team",
+  "dependencies": {
+    "@google-cloud/logging": "^11.2.1",
+    "@google-cloud/monitoring": "^5.3.1",
+    "@google-cloud/resource-manager": "^6.2.1",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "google-auth-library": "^9.14.1",
+    "googleapis": "^171.4.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.9",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "cloud-console",
+    "gcp",
+    "google-cloud",
+    "mcp",
+    "model-context-protocol"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc && node dist/index.js",
+    "start": "node dist/index.js",
+    "test": "echo \"Tests not yet implemented\" && exit 0",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch"
+  },
+  "type": "module"
+}

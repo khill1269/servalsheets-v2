@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ServalSheets Admin Dashboard</title>
+    <link rel="stylesheet" href="/admin/styles.css" />
+  </head>
+  <body>
+    <div class="dashboard">
+      <!-- Header -->
+      <header class="header">
+        <h1>🐆 ServalSheets Admin Dashboard</h1>
+        <div class="header-info">
+          <span id="server-status" class="status-badge status-operational">Operational</span>
+          <span id="uptime">Uptime: --</span>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- System Overview -->
+        <section class="card">
+          <h2>System Overview</h2>
+          <div class="stats-grid">
+            <div class="stat">
+              <div class="stat-label">Version</div>
+              <div class="stat-value" id="version">--</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Protocol</div>
+              <div class="stat-value" id="protocol">--</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Tools</div>
+              <div class="stat-value" id="tool-count">--</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Actions</div>
+              <div class="stat-value" id="action-count">--</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Active Sessions</div>
+              <div class="stat-value" id="active-sessions">--</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Total Requests</div>
+              <div class="stat-value" id="total-requests">--</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Circuit Breakers -->
+        <section class="card">
+          <h2>Circuit Breakers</h2>
+          <div id="circuit-breakers" class="circuit-breakers">
+            <p class="loading">Loading circuit breakers...</p>
+          </div>
+        </section>
+
+        <!-- Request Deduplication -->
+        <section class="card">
+          <h2>Request Deduplication</h2>
+          <div class="stats-grid">
+            <div class="stat">
+              <div class="stat-label">Total Requests</div>
+              <div class="stat-value" id="dedup-total">--</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Deduplicated</div>
+              <div class="stat-value" id="dedup-saved">--</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Cache Hits</div>
+              <div class="stat-value" id="dedup-cache-hits">--</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Savings Rate</div>
+              <div class="stat-value" id="dedup-rate">--</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Recent Sessions -->
+        <section class="card">
+          <h2>Active Sessions</h2>
+          <div id="sessions-list" class="sessions-list">
+            <p class="loading">Loading sessions...</p>
+          </div>
+        </section>
+
+        <!-- Request Logs -->
+        <section class="card">
+          <h2>Recent Requests</h2>
+          <div class="table-controls">
+            <button id="refresh-logs" class="btn btn-primary">Refresh</button>
+            <button id="clear-logs" class="btn btn-secondary">Clear</button>
+          </div>
+          <div id="request-logs" class="request-logs">
+            <p class="loading">Loading request logs...</p>
+          </div>
+        </section>
+
+        <!-- Actions -->
+        <section class="card">
+          <h2>Admin Actions</h2>
+          <div class="actions-grid">
+            <button class="btn btn-warning" onclick="resetCircuitBreakers()">
+              Reset All Circuit Breakers
+            </button>
+            <button class="btn btn-warning" onclick="clearDeduplicationCache()">
+              Clear Dedup Cache
+            </button>
+            <button class="btn btn-danger" onclick="shutdownServer()">Shutdown Server</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/admin/dashboard.js"></script>
+  </body>
+</html>

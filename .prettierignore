@@ -1,0 +1,8 @@
+# Generated files — formatting managed by gen:metadata, not Prettier
+src/mcp/completions.ts
+src/generated/
+server.json
+
+# Dependencies and build output
+node_modules/
+dist/

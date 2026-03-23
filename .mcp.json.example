@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "servalsheets": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "dist/cli.js",
+        "--stdio"
+      ],
+      "env": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "info",
+        "SKIP_PREFLIGHT": "true",
+        "ALLOW_MEMORY_SESSIONS": "true",
+        "OAUTH_CLIENT_ID": "${OAUTH_CLIENT_ID}",
+        "OAUTH_CLIENT_SECRET": "${OAUTH_CLIENT_SECRET}",
+        "OAUTH_REDIRECT_URI": "http://localhost:3000/callback",
+        "ENCRYPTION_KEY": "${ENCRYPTION_KEY}",
+        "GOOGLE_TOKEN_STORE_PATH": "/Users/thomascahill/.servalsheets/tokens.encrypted",
+        "OAUTH_USE_CALLBACK_SERVER": "true",
+        "OAUTH_AUTO_OPEN_BROWSER": "true",
+        "SERVAL_DEFER_SCHEMAS": "true",
+        "SERVAL_DEFER_DESCRIPTIONS": "true",
+        "ENABLE_PYTHON_COMPUTE": "true"
+      }
+    },
+    "google-dev-knowledge": {
+      "type": "http",
+      "url": "https://developerknowledge.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "${GOOGLE_DEV_KNOWLEDGE_API_KEY}"
+      }
+    }
+  }
+}

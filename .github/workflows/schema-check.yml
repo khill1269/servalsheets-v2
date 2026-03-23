@@ -1,0 +1,180 @@
+name: Google API Schema Check
+
+on:
+  schedule:
+    # Run weekly on Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      api:
+        description: 'API to check (sheets, drive, or all)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - sheets
+          - drive
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: schema-check-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  schema-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch latest schemas
+        env:
+          DISCOVERY_API_ENABLED: 'true'
+        run: |
+          echo "📦 Fetching latest Google API schemas..."
+          npm run schema:fetch -- --api=${{ github.event.inputs.api || 'all' }}
+
+      - name: Compare schemas
+        id: compare
+        continue-on-error: true
+        env:
+          DISCOVERY_API_ENABLED: 'true'
+        run: |
+          echo "🔍 Comparing schemas with current implementation..."
+          npm run schema:compare -- --api=${{ github.event.inputs.api || 'all' }} > schema-comparison.txt 2>&1
+          echo "comparison_output<<EOF" >> $GITHUB_OUTPUT
+          cat schema-comparison.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Generate migration report
+        if: steps.compare.outcome == 'failure'
+        env:
+          DISCOVERY_API_ENABLED: 'true'
+        run: |
+          echo "📝 Generating migration report..."
+          npm run schema:migration-report -- --api=${{ github.event.inputs.api || 'all' }} > migration-report.txt
+
+      - name: Upload schema comparison artifacts
+        if: steps.compare.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: schema-reports
+          path: |
+            schema-comparison.txt
+            migration-report.txt
+          retention-days: 30
+
+      - name: Create issue for schema changes
+        if: steps.compare.outcome == 'failure'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read comparison output
+            const comparison = fs.readFileSync('schema-comparison.txt', 'utf8');
+            const migrationReport = fs.existsSync('migration-report.txt')
+              ? fs.readFileSync('migration-report.txt', 'utf8')
+              : 'Migration report not available';
+
+            // Check if issue already exists
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'api-change'
+            });
+
+            const hasOpenIssue = existingIssues.data.some(issue =>
+              issue.title.includes('Google API Schema Changes Detected')
+            );
+
+            if (hasOpenIssue) {
+              console.log('Issue already exists, skipping creation');
+              return;
+            }
+
+            // Create new issue
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🔔 Google API Schema Changes Detected',
+              labels: ['api-change', 'maintenance', 'automated'],
+              body: `## Google API Schema Changes Detected
+
+            The weekly schema check has detected changes in the Google API schemas.
+
+            **Run Date:** ${new Date().toISOString()}
+            **Workflow:** [${context.workflow}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+
+            ### Comparison Summary
+
+            \`\`\`
+            ${comparison}
+            \`\`\`
+
+            ### Migration Report
+
+            <details>
+            <summary>Click to expand full migration report</summary>
+
+            ${migrationReport}
+
+            </details>
+
+            ### Next Steps
+
+            1. **Review Changes:** Examine the comparison summary above
+            2. **Download Reports:** [Download artifacts](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) from this workflow run
+            3. **Run Locally:**
+               \`\`\`bash
+               npm run schema:fetch
+               npm run schema:compare
+               npm run schema:migration-report
+               \`\`\`
+            4. **Update Implementation:** Follow the migration plan if needed
+            5. **Test:** Run full test suite after updates
+            6. **Close Issue:** Close this issue once changes are addressed
+
+            ### Automation Details
+
+            - This issue was created automatically by the \`schema-check\` workflow
+            - The workflow runs weekly on Sundays at midnight UTC
+            - Manual runs can be triggered from the [Actions tab](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/workflows/schema-check.yml)
+
+            ---
+
+            *🤖 Automated by GitHub Actions | [Workflow Definition](.github/workflows/schema-check.yml)*`
+            });
+
+            console.log(`Created issue #${issue.data.number}`);
+
+      - name: Report success
+        if: steps.compare.outcome == 'success'
+        run: |
+          echo "✅ No schema changes detected"
+          echo "All Google API schemas are up to date with current implementation"
+
+      - name: Cache schemas
+        if: always()
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .discovery-cache
+          key: discovery-schemas-${{ runner.os }}-${{ hashFiles('.discovery-cache/**') }}
+          restore-keys: |
+            discovery-schemas-${{ runner.os }}-

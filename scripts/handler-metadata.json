@@ -1,0 +1,180 @@
+{
+  "_comment": "Static handler metadata for gen-doc-tables.mjs. Action counts and file sizes are auto-derived. Update only: handlerClass, file, type, keyService.",
+  "handlers": [
+    {
+      "tool": "sheets_core",
+      "handlerClass": "SheetsCoreHandler",
+      "file": "handlers/core.ts",
+      "type": "BaseHandler",
+      "keyService": "Google Sheets + Drive API"
+    },
+    {
+      "tool": "sheets_data",
+      "handlerClass": "SheetsDataHandler",
+      "file": "handlers/data.ts",
+      "type": "BaseHandler",
+      "keyService": "CachedSheetsApi, ParallelExecutor"
+    },
+    {
+      "tool": "sheets_format",
+      "handlerClass": "SheetsFormatHandler",
+      "file": "handlers/format.ts",
+      "type": "BaseHandler",
+      "keyService": "BatchCompiler (intent system)"
+    },
+    {
+      "tool": "sheets_dimensions",
+      "handlerClass": "SheetsDimensionsHandler",
+      "file": "handlers/dimensions.ts",
+      "type": "BaseHandler",
+      "keyService": "BatchCompiler"
+    },
+    {
+      "tool": "sheets_advanced",
+      "handlerClass": "AdvancedHandler",
+      "file": "handlers/advanced.ts",
+      "type": "BaseHandler",
+      "keyService": "BatchCompiler"
+    },
+    {
+      "tool": "sheets_visualize",
+      "handlerClass": "VisualizeHandler",
+      "file": "handlers/visualize.ts",
+      "type": "BaseHandler",
+      "keyService": "Sampling (chart suggestions)"
+    },
+    {
+      "tool": "sheets_collaborate",
+      "handlerClass": "CollaborateHandler",
+      "file": "handlers/collaborate.ts",
+      "type": "BaseHandler",
+      "keyService": "Drive API (sharing)"
+    },
+    {
+      "tool": "sheets_composite",
+      "handlerClass": "CompositeHandler",
+      "file": "handlers/composite.ts",
+      "type": "BaseHandler",
+      "keyService": "CompositeOperationsService"
+    },
+    {
+      "tool": "sheets_analyze",
+      "handlerClass": "AnalyzeHandler",
+      "file": "handlers/analyze.ts",
+      "type": "BaseHandler",
+      "keyService": "Sampling, BackgroundAnalyzer"
+    },
+    {
+      "tool": "sheets_fix",
+      "handlerClass": "FixHandler",
+      "file": "handlers/fix.ts",
+      "type": "BaseHandler",
+      "keyService": "CleaningEngine, quality validators"
+    },
+    {
+      "tool": "sheets_templates",
+      "handlerClass": "SheetsTemplatesHandler",
+      "file": "handlers/templates.ts",
+      "type": "BaseHandler",
+      "keyService": "Drive appDataFolder"
+    },
+    {
+      "tool": "sheets_bigquery",
+      "handlerClass": "SheetsBigQueryHandler",
+      "file": "handlers/bigquery.ts",
+      "type": "BaseHandler",
+      "keyService": "BigQuery API, circuit breaker"
+    },
+    {
+      "tool": "sheets_appsscript",
+      "handlerClass": "SheetsAppsScriptHandler",
+      "file": "handlers/appsscript.ts",
+      "type": "BaseHandler",
+      "keyService": "Apps Script API, circuit breaker"
+    },
+    {
+      "tool": "sheets_auth",
+      "handlerClass": "AuthHandler",
+      "file": "handlers/auth.ts",
+      "type": "Standalone",
+      "keyService": "EncryptedFileTokenStore"
+    },
+    {
+      "tool": "sheets_confirm",
+      "handlerClass": "ConfirmHandler",
+      "file": "handlers/confirm.ts",
+      "type": "Standalone",
+      "keyService": "ElicitationServer, WizardSessions"
+    },
+    {
+      "tool": "sheets_dependencies",
+      "handlerClass": "DependenciesHandler",
+      "file": "handlers/dependencies.ts",
+      "type": "Standalone",
+      "keyService": "ImpactAnalyzer (cached), ScenarioEngine"
+    },
+    {
+      "tool": "sheets_quality",
+      "handlerClass": "QualityHandler",
+      "file": "handlers/quality.ts",
+      "type": "Standalone",
+      "keyService": "ValidationEngine, ConflictDetector"
+    },
+    {
+      "tool": "sheets_history",
+      "handlerClass": "HistoryHandler",
+      "file": "handlers/history.ts",
+      "type": "Standalone",
+      "keyService": "HistoryService, SnapshotService, TimeTravelService"
+    },
+    {
+      "tool": "sheets_session",
+      "handlerClass": "SessionHandler + handleSheetsSession()",
+      "file": "handlers/session.ts",
+      "type": "Standalone",
+      "keyService": "SessionContextManager"
+    },
+    {
+      "tool": "sheets_transaction",
+      "handlerClass": "TransactionHandler",
+      "file": "handlers/transaction.ts",
+      "type": "Standalone",
+      "keyService": "TransactionManager"
+    },
+    {
+      "tool": "sheets_federation",
+      "handlerClass": "FederationHandler",
+      "file": "handlers/federation.ts",
+      "type": "Standalone",
+      "keyService": "FederatedMcpClient"
+    },
+    {
+      "tool": "sheets_webhook",
+      "handlerClass": "WebhookHandler",
+      "file": "handlers/webhooks.ts",
+      "type": "Standalone",
+      "keyService": "WebhookManager, Redis"
+    },
+    {
+      "tool": "sheets_agent",
+      "handlerClass": "AgentHandler",
+      "file": "handlers/agent.ts",
+      "type": "Standalone",
+      "keyService": "AgentEngine (plan/execute/rollback)"
+    },
+    {
+      "tool": "sheets_compute",
+      "handlerClass": "ComputeHandler",
+      "file": "handlers/compute.ts",
+      "type": "Standalone",
+      "keyService": "ComputeEngine (stats, regression, forecast)"
+    },
+    {
+      "tool": "sheets_connectors",
+      "handlerClass": "ConnectorsHandler",
+      "file": "handlers/connectors.ts",
+      "type": "Standalone",
+      "keyService": "ConnectorManager (external API connector registry)"
+    }
+  ]
+}

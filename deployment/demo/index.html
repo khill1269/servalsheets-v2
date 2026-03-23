@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ServalSheets Demo - Try Google Sheets MCP Server</title>
+    <meta
+      name="description"
+      content="Try ServalSheets MCP server without installation. Read spreadsheet data, analyze patterns, get AI recommendations."
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --primary: #5f6fd9;
+        --primary-dark: #4d5cc7;
+        --accent: #41d1ff;
+        --bg: #0f0f1a;
+        --bg-card: #1a1a2e;
+        --text: #ffffff;
+        --text-muted: #a0a0b0;
+        --border: #333;
+        --success: #4ade80;
+        --warning: #fbbf24;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* Header */
+      header {
+        padding: 24px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      .logo svg {
+        width: 40px;
+        height: 40px;
+      }
+
+      .badge {
+        background: var(--primary);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 24px;
+      }
+
+      .nav-links a {
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      .nav-links a:hover {
+        color: var(--text);
+      }
+
+      /* Hero */
+      .hero {
+        padding: 80px 0;
+        text-align: center;
+      }
+
+      .hero h1 {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        background: linear-gradient(120deg, var(--primary) 30%, var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero p {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        max-width: 600px;
+        margin: 0 auto 32px;
+      }
+
+      /* Code block */
+      .code-block {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 24px;
+        font-family: 'SF Mono', Monaco, monospace;
+        font-size: 0.9rem;
+        display: inline-block;
+        margin-bottom: 24px;
+      }
+
+      .code-block code {
+        color: var(--accent);
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-card);
+      }
+
+      .hero-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+      }
+
+      /* Features */
+      .features {
+        padding: 80px 0;
+      }
+
+      .features h2 {
+        text-align: center;
+        margin-bottom: 48px;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+      }
+
+      .feature-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 32px rgba(95, 111, 217, 0.2);
+      }
+
+      .feature-card h3 {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .feature-card p {
+        color: var(--text-muted);
+      }
+
+      /* Try It */
+      .try-it {
+        padding: 80px 0;
+        background: var(--bg-card);
+      }
+
+      .try-it h2 {
+        text-align: center;
+        margin-bottom: 48px;
+      }
+
+      .demo-panel {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .demo-header {
+        background: #252535;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .demo-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+
+      .demo-dot.red {
+        background: #ff5f56;
+      }
+      .demo-dot.yellow {
+        background: #ffbd2e;
+      }
+      .demo-dot.green {
+        background: #27c93f;
+      }
+
+      .demo-content {
+        padding: 24px;
+        font-family: 'SF Mono', Monaco, monospace;
+        font-size: 0.85rem;
+      }
+
+      .demo-line {
+        margin-bottom: 8px;
+      }
+
+      .demo-prompt {
+        color: var(--success);
+      }
+      .demo-command {
+        color: var(--text);
+      }
+      .demo-output {
+        color: var(--text-muted);
+      }
+
+      /* Limitations */
+      .limitations {
+        padding: 80px 0;
+      }
+
+      .limitations h2 {
+        text-align: center;
+        margin-bottom: 48px;
+      }
+
+      .limit-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 24px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .limit-item {
+        display: flex;
+        align-items: start;
+        gap: 12px;
+      }
+
+      .limit-icon {
+        color: var(--warning);
+        font-size: 1.25rem;
+      }
+
+      /* CTA */
+      .cta {
+        padding: 80px 0;
+        text-align: center;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      }
+
+      .cta h2 {
+        margin-bottom: 16px;
+      }
+      .cta p {
+        margin-bottom: 24px;
+        opacity: 0.9;
+      }
+
+      /* Footer */
+      footer {
+        padding: 24px 0;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        color: var(--text-muted);
+      }
+
+      footer a {
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        color: var(--text);
+      }
+
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 2rem;
+        }
+        .hero-buttons {
+          flex-direction: column;
+        }
+        .nav-links {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container header-content">
+        <a href="/" class="logo">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color: #5f6fd9" />
+                <stop offset="100%" style="stop-color: #41d1ff" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="45" fill="url(#grad)" />
+            <rect x="25" y="25" width="50" height="50" fill="white" rx="4" />
+            <path
+              d="M35 50 L45 60 L65 35"
+              stroke="#5f6fd9"
+              stroke-width="4"
+              fill="none"
+              stroke-linecap="round"
+            />
+          </svg>
+          ServalSheets
+          <span class="badge">DEMO</span>
+        </a>
+        <nav class="nav-links">
+          <a href="https://github.com/khill1269/servalsheets">GitHub</a>
+          <a href="https://github.com/khill1269/servalsheets#readme">Docs</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container">
+          <h1>Try ServalSheets</h1>
+          <p>
+            Experience the production-grade Google Sheets MCP server without installation. Explore
+            305 actions with sample data.
+          </p>
+
+          <div class="code-block">
+            <code>npx @modelcontextprotocol/inspector https://demo.servalsheets.dev</code>
+          </div>
+
+          <div class="hero-buttons">
+            <a href="https://github.com/khill1269/servalsheets" class="btn btn-primary">
+              Install Full Version
+            </a>
+            <a href="#try-it" class="btn btn-secondary"> Try Demo → </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="features">
+        <div class="container">
+          <h2>What You Can Try</h2>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <h3>📖 Read Data</h3>
+              <p>Query sample spreadsheets with A1 notation, named ranges, or semantic headers.</p>
+            </div>
+            <div class="feature-card">
+              <h3>🔍 Analyze Patterns</h3>
+              <p>Discover trends, correlations, and anomalies in the sample data.</p>
+            </div>
+            <div class="feature-card">
+              <h3>🤖 AI Recommendations</h3>
+              <p>Get formula suggestions and chart recommendations powered by AI.</p>
+            </div>
+            <div class="feature-card">
+              <h3>📊 View Charts</h3>
+              <p>Explore chart specifications and visualization options.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="try-it" id="try-it">
+        <div class="container">
+          <h2>Live Demo</h2>
+          <div class="demo-panel">
+            <div class="demo-header">
+              <span class="demo-dot red"></span>
+              <span class="demo-dot yellow"></span>
+              <span class="demo-dot green"></span>
+            </div>
+            <div class="demo-content">
+              <div class="demo-line">
+                <span class="demo-prompt">$ </span>
+                <span class="demo-command">curl https://demo.servalsheets.dev/health</span>
+              </div>
+              <div class="demo-line demo-output">
+                {"status":"healthy","version":"1.6.0","mode":"demo"}
+              </div>
+              <div class="demo-line" style="margin-top: 16px">
+                <span class="demo-prompt">$ </span>
+                <span class="demo-command"
+                  >npx @modelcontextprotocol/inspector https://demo.servalsheets.dev</span
+                >
+              </div>
+              <div class="demo-line demo-output">Connected to ServalSheets Demo</div>
+              <div class="demo-line demo-output">Available tools: 22 (305 actions)</div>
+              <div class="demo-line demo-output">Mode: read-only</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="limitations">
+        <div class="container">
+          <h2>Demo Limitations</h2>
+          <div class="limit-grid">
+            <div class="limit-item">
+              <span class="limit-icon">⚠️</span>
+              <div>
+                <strong>Read-Only Access</strong>
+                <p>Write operations are disabled in demo mode.</p>
+              </div>
+            </div>
+            <div class="limit-item">
+              <span class="limit-icon">⏱️</span>
+              <div>
+                <strong>Rate Limited</strong>
+                <p>30 requests per minute to prevent abuse.</p>
+              </div>
+            </div>
+            <div class="limit-item">
+              <span class="limit-icon">📊</span>
+              <div>
+                <strong>Sample Data Only</strong>
+                <p>Uses pre-configured demo spreadsheets.</p>
+              </div>
+            </div>
+            <div class="limit-item">
+              <span class="limit-icon">🔒</span>
+              <div>
+                <strong>No Authentication</strong>
+                <p>OAuth features are disabled in demo.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta">
+        <div class="container">
+          <h2>Ready for Full Access?</h2>
+          <p>
+            Install ServalSheets for unlimited operations, write access, and your own spreadsheets.
+          </p>
+          <a href="https://github.com/khill1269/servalsheets" class="btn btn-secondary">
+            Get Started →
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container">
+        <p>
+          <a href="https://github.com/khill1269/servalsheets">ServalSheets</a>
+          · MIT License ·
+          <a href="https://github.com/khill1269/servalsheets/issues">Report Issue</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,62 @@
+# Source files (dist/ includes compiled versions)
+src/
+tests/
+*.test.ts
+*.spec.ts
+
+# Configuration files
+tsconfig.json
+tsconfig.*.json
+vitest.config.ts
+.eslintrc.*
+.prettierrc.*
+
+# Build artifacts
+*.tsbuildinfo
+*.map
+coverage/
+
+# Development files
+.github/
+.vscode/
+.devcontainer/
+.husky/
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Development documentation (GitHub only, not in npm package)
+
+# Scripts
+scripts/
+
+# Deployment configs (not needed in npm package)
+deployment/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment files
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.bak*

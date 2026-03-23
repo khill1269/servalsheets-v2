@@ -1,0 +1,58 @@
+.flamegraph-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.flamegraph-info {
+  padding: 1rem;
+  background-color: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.flamegraph-info p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.flamegraph {
+  flex: 1;
+  min-height: 400px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Override d3-flame-graph default styles */
+.flamegraph .d3-flame-graph rect {
+  stroke: #fff;
+  stroke-width: 0.5px;
+  cursor: pointer;
+}
+
+.flamegraph .d3-flame-graph rect:hover {
+  opacity: 0.9;
+}
+
+.flamegraph .d3-flame-graph text {
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  pointer-events: none;
+}
+
+.flamegraph .d3-flame-graph-tooltip {
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  pointer-events: none;
+  white-space: pre-line;
+  max-width: 300px;
+}

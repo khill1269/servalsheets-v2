@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ServalSheets — Comprehensive Fix Plan &amp; Improvement Analysis</title>
+<style>
+  :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --green: #4ade80; --red: #f87171; --yellow: #fbbf24; --orange: #fb923c; --purple: #a78bfa; --text: #e2e8f0; --muted: #94a3b8; --border: #334155; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem; }
+  .container { max-width: 1300px; margin: 0 auto; }
+  h1 { font-size: 2rem; color: var(--accent); margin-bottom: 0.25rem; }
+  h2 { font-size: 1.35rem; color: var(--accent); margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.05rem; color: var(--text); margin: 1.2rem 0 0.5rem; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem; margin: 0.75rem 0; }
+  .card.highlight { border-color: var(--accent); background: linear-gradient(135deg, #1e3a5f, #1e293b); }
+  .card.warn { border-left: 4px solid var(--yellow); }
+  .card.critical { border-left: 4px solid var(--red); }
+  .card.good { border-left: 4px solid var(--green); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.5rem 0; }
+  th { background: #0f172a; color: var(--accent); text-align: left; padding: 0.6rem 0.8rem; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; position: sticky; top: 0; }
+  td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:hover td { background: rgba(56,189,248,0.04); }
+  code { background: rgba(56,189,248,0.1); color: var(--accent); padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; }
+  .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+  .tag-p0 { background: rgba(248,113,113,0.2); color: var(--red); }
+  .tag-p1 { background: rgba(251,191,36,0.2); color: var(--yellow); }
+  .tag-p2 { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .tag-p3 { background: rgba(148,163,184,0.15); color: var(--muted); }
+  .tag-pass { background: rgba(74,222,128,0.15); color: var(--green); }
+  .tag-fail { background: rgba(248,113,113,0.15); color: var(--red); }
+  .tag-fix { background: rgba(167,139,250,0.2); color: var(--purple); }
+  pre { background: #0c1222; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; overflow-x: auto; font-size: 0.8rem; line-height: 1.5; margin: 0.5rem 0; color: #93c5fd; }
+  .connector-card { display: flex; align-items: center; gap: 1rem; padding: 1rem; }
+  .connector-icon { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 700; }
+  .conn-finnhub { background: #1a365d; color: #63b3ed; }
+  .conn-fred { background: #1a3a2a; color: #68d391; }
+  .conn-alpha { background: #3a2a1a; color: #f6ad55; }
+  .conn-fmp { background: #2a1a3a; color: #b794f4; }
+  .conn-polygon { background: #3a1a1a; color: #fc8181; }
+  .conn-public { background: #1a2a3a; color: #90cdf4; }
+  .stat-box { text-align: center; padding: 1rem; }
+  .stat-box .val { font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .stat-box .lbl { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .section-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.5rem 0; }
+  .section-nav a { padding: 0.4rem 0.9rem; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--accent); text-decoration: none; font-size: 0.8rem; font-weight: 500; }
+  .section-nav a:hover { background: rgba(56,189,248,0.1); border-color: var(--accent); }
+  @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } body { padding: 1rem; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>ServalSheets Fix Plan &amp; Improvement Analysis</h1>
+<p class="subtitle">Based on 12-Phase Capability Showcase &bull; 9 Failures Analyzed &bull; 25 Codebase Improvements Identified &bull; March 19, 2026</p>
+
+<div class="section-nav">
+  <a href="#failures">9 Failures</a>
+  <a href="#range">Range Inconsistency</a>
+  <a href="#schema">Schema Strictness</a>
+  <a href="#timeouts">Timeout Analysis</a>
+  <a href="#routing">Intelligent Routing</a>
+  <a href="#connectors">6 Connectors</a>
+  <a href="#roadmap">Fix Roadmap</a>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="failures">1. All 9 Showcase Failures — Root Cause Analysis</h2>
+
+<div class="card critical">
+<table>
+<thead><tr><th>#</th><th>Failure</th><th>Root Cause</th><th>Category</th><th>Fix</th><th>Priority</th></tr></thead>
+<tbody>
+<tr>
+  <td>1</td>
+  <td><code>sheets_data.write</code> rejected plain string range</td>
+  <td><strong>Range format inconsistency</strong> — <code>RangeInputSchema</code> uses <code>z.preprocess()</code> that should auto-wrap strings to <code>{a1: str}</code>, but the preprocess step may not fire when the outer schema validates first</td>
+  <td><span class="tag tag-p0">Schema</span></td>
+  <td>Verify <code>z.preprocess</code> ordering in <code>shared.ts:1112</code>; ensure string→object transform fires before union validation</td>
+  <td><span class="tag tag-p0">P0</span></td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>chart_create</code> anchor column exceeded grid bounds</td>
+  <td><strong>No pre-flight grid validation</strong> — handler doesn't check if anchorCell column index is within the target sheet's column count before sending to Google API</td>
+  <td><span class="tag tag-p1">Validation</span></td>
+  <td>Add <code>validateAnchorWithinGrid(sheetId, anchorCell)</code> pre-check in <code>visualize-actions/charts.ts</code></td>
+  <td><span class="tag tag-p1">P1</span></td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>apply_preset</code> alternating_rows failed (duplicate banding)</td>
+  <td><strong>No idempotency guard</strong> — handler doesn't check for existing banding before adding new one. Google API rejects duplicate banding on same range.</td>
+  <td><span class="tag tag-p2">Idempotency</span></td>
+  <td>Call <code>list_banding</code> first; if banding exists on range, skip or update instead of add</td>
+  <td><span class="tag tag-p2">P2</span></td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>chart_create</code> 60s timeout on Charts sheet</td>
+  <td><strong>Timeout on thin sheets</strong> — Charts sheet had only 1 column; handler may attempt expensive metadata fetch or Sampling call before chart placement</td>
+  <td><span class="tag tag-p1">Timeout</span></td>
+  <td>Skip Sampling for explicit chart specs; add early timeout guard; route to Tasks API if Sampling involved</td>
+  <td><span class="tag tag-p1">P1</span></td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>query_natural_language</code> FEATURE_UNAVAILABLE</td>
+  <td><strong>Missing ANTHROPIC_API_KEY</strong> — Sampling fallback requires LLM API key. Server correctly reports feature unavailable, but error message doesn't mention the specific env var needed.</td>
+  <td><span class="tag tag-p2">DX</span></td>
+  <td>Enrich error: <code>"Set ANTHROPIC_API_KEY in your MCP server env to enable AI queries"</code></td>
+  <td><span class="tag tag-p2">P2</span></td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>add_named_range</code> timeout with <code>a1</code> format</td>
+  <td><strong>A1→Grid conversion overhead</strong> — When using <code>{a1: "Sheet!A1:I21"}</code>, handler must resolve sheet name→sheetId via extra API call. <code>{grid: {sheetId: ...}}</code> skips this.</td>
+  <td><span class="tag tag-p1">Timeout</span></td>
+  <td>Cache sheet name→sheetId map per spreadsheet; use <code>knownSpreadsheets</code> cache in <code>cached-sheets-api.ts</code></td>
+  <td><span class="tag tag-p1">P1</span></td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>execute_step</code> rejected <code>spreadsheetId</code></td>
+  <td><strong>Correct behavior</strong> — schema is <code>.strict()</code>, spreadsheetId is bound to plan context. But LLM doesn't know this.</td>
+  <td><span class="tag tag-p2">DX</span></td>
+  <td>Add to <code>.describe()</code>: "spreadsheetId is inherited from the plan — do not include it here"</td>
+  <td><span class="tag tag-p3">P3</span></td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>wizard_start</code> required stepId + title + description</td>
+  <td><strong>Over-strict schema</strong> — <code>stepId</code> could be auto-generated; <code>title</code> could default to truncated description</td>
+  <td><span class="tag tag-p1">Schema</span></td>
+  <td>Make <code>stepId</code> optional (auto-gen <code>step_${index}</code>); make <code>title</code> optional (fallback to <code>description.slice(0,50)</code>)</td>
+  <td><span class="tag tag-p1">P1</span></td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>record_operation</code> required <code>undoable</code> boolean</td>
+  <td><strong>Missing default</strong> — <code>z.boolean()</code> without <code>.default(true)</code>. Most operations are undoable via snapshot system.</td>
+  <td><span class="tag tag-p1">Schema</span></td>
+  <td>Change to <code>z.boolean().optional().default(true)</code></td>
+  <td><span class="tag tag-p1">P1</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="range">2. Range Format Inconsistency — The #1 LLM Usability Issue</h2>
+
+<div class="card highlight">
+<p style="margin-bottom:1rem;">The <code>range</code> field uses <strong>3 different type systems</strong> across 25 tools — the single biggest source of first-call failures for LLM callers.</p>
+
+<table>
+<thead><tr><th>Pattern</th><th>Type</th><th>Tools Using It</th><th>Actions Affected</th><th>LLM Impact</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>RangeInputSchema</strong></td>
+  <td>Union: string auto-wrapped to <code>{a1:""}</code> + named + semantic + grid</td>
+  <td>sheets_data, sheets_format, sheets_dimensions, sheets_advanced, sheets_analyze, sheets_bigquery</td>
+  <td>~70 actions</td>
+  <td><span class="tag tag-pass">Flexible</span> — but <code>z.preprocess</code> may not fire consistently</td>
+</tr>
+<tr>
+  <td><strong>A1NotationSchema</strong></td>
+  <td>Plain string with regex validation</td>
+  <td>sheets_compute (10), sheets_quality (2)</td>
+  <td>12 actions</td>
+  <td><span class="tag tag-p1">Strict string-only</span> — rejects <code>{a1:""}</code> objects</td>
+</tr>
+<tr>
+  <td><strong>z.string()</strong></td>
+  <td>Plain string, minimal validation</td>
+  <td>sheets_fix (5), sheets_history (2), sheets_composite (3), sheets_templates (1), sheets_connectors (1)</td>
+  <td>12 actions</td>
+  <td><span class="tag tag-p2">Accepts anything</span> — but no A1 validation, so garbage in/garbage out</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="card warn">
+<h3>Recommended Fix: Universal Range Normalization</h3>
+<pre>// In src/schemas/shared.ts — create a SINGLE UniversalRangeSchema
+export const UniversalRangeSchema = z.preprocess(
+  (val) => {
+    if (typeof val === 'string') return { a1: val };  // Always wrap strings
+    return val;
+  },
+  z.union([
+    z.object({ a1: A1NotationSchema }),
+    z.object({ namedRange: z.string().min(1) }),
+    z.object({ semantic: SemanticRangeQuerySchema }),
+    z.object({ grid: GridRangeSchema }),
+  ])
+);
+
+// Then: replace ALL z.string() ranges AND A1NotationSchema ranges
+// with UniversalRangeSchema across these files:
+// - src/schemas/compute.ts (10 actions)
+// - src/schemas/quality.ts (2 actions)
+// - src/schemas/fix.ts (5 actions)
+// - src/schemas/history.ts (2 actions)
+// - src/schemas/composite.ts (3 actions)
+
+// Handler-side: add extractA1() helper that unwraps any format to string
+export function extractA1(range: RangeInput): string {
+  if ('a1' in range) return range.a1;
+  if ('namedRange' in range) return range.namedRange;
+  if ('grid' in range) return gridToA1(range.grid);
+  if ('semantic' in range) throw new ValidationError('Semantic ranges not supported for this action');
+}</pre>
+<p style="font-size:0.8rem; color:var(--muted); margin-top:0.5rem;"><strong>Impact:</strong> ~24 actions become consistently callable. LLMs can always send plain strings or objects. Files changed: 6 schema files + 5 handler files. Run <code>npm run schema:commit</code> after.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="schema">3. Schema Strictness — Required Fields That Should Default</h2>
+
+<div class="card">
+<table>
+<thead><tr><th>Field</th><th>Schema File</th><th>Current</th><th>Recommended</th><th>Rationale</th></tr></thead>
+<tbody>
+<tr>
+  <td><code>undoable</code></td>
+  <td>session.ts:77</td>
+  <td><code>z.boolean()</code> — required</td>
+  <td><code>z.boolean().optional().default(true)</code></td>
+  <td>Most ops are undoable; saves LLM from always specifying</td>
+</tr>
+<tr>
+  <td><code>referenceType</code></td>
+  <td>session.ts:109</td>
+  <td><code>z.enum([...]) </code> — required</td>
+  <td><code>z.enum([...]).optional().default('spreadsheet')</code></td>
+  <td>Handler already defaults to 'spreadsheet' internally</td>
+</tr>
+<tr>
+  <td><code>stepId</code></td>
+  <td>confirm.ts:133</td>
+  <td><code>z.string()</code> — required per step</td>
+  <td><code>z.string().optional()</code> + auto-gen <code>step_${i}</code></td>
+  <td>Forces LLM to invent IDs; auto-gen is trivial</td>
+</tr>
+<tr>
+  <td><code>title</code> (wizard step)</td>
+  <td>confirm.ts:134</td>
+  <td><code>z.string()</code> — required per step</td>
+  <td><code>z.string().optional()</code> + fallback to <code>description.slice(0,50)</code></td>
+  <td>Redundant with description in most cases</td>
+</tr>
+<tr>
+  <td><code>cellsAffected</code></td>
+  <td>session.ts:80</td>
+  <td><code>z.number().optional()</code></td>
+  <td><span class="tag tag-pass">Already OK</span></td>
+  <td>—</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="card warn">
+<h3>Broader Pattern: Audit All Schemas for Missing Defaults</h3>
+<p>Beyond the 4 fixes above, there are <strong>~15 additional enum/boolean fields</strong> across schemas that have ≤3 options and no <code>.default()</code>. A systematic audit should add defaults to any field where one option covers 80%+ of use cases:</p>
+<pre>// Quick grep to find candidates:
+// grep -n 'z\.enum\(\[' src/schemas/*.ts | grep -v 'optional\|default'
+// grep -n 'z\.boolean()' src/schemas/*.ts | grep -v 'optional\|default'
+
+// Common fixes:
+// verbosity → already has .default('standard') ✅
+// format → .default('xlsx') for exports
+// mode → .default('preview') for destructive ops (safer default)
+// dimension → .default('ROWS') in dimensions.ts</pre>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="timeouts">4. Timeout-Prone Operations — Risk Analysis</h2>
+
+<div class="grid-3">
+  <div class="card stat-box" style="border-left:4px solid var(--red)"><div class="val" style="color:var(--red)">3</div><div class="lbl">Critical (&gt;60s)</div></div>
+  <div class="card stat-box" style="border-left:4px solid var(--yellow)"><div class="val" style="color:var(--yellow)">4</div><div class="lbl">High Risk (40-60s)</div></div>
+  <div class="card stat-box" style="border-left:4px solid var(--accent)"><div class="val" style="color:var(--accent)">3</div><div class="lbl">Medium (20-40s)</div></div>
+</div>
+
+<div class="card">
+<table>
+<thead><tr><th>Operation</th><th>File</th><th>Est. Time</th><th>Why Slow</th><th>Fix</th></tr></thead>
+<tbody>
+<tr class="critical">
+  <td><code>history.timeline</code></td>
+  <td>handlers/history.ts</td>
+  <td><span class="tag tag-fail">5+ min</span></td>
+  <td>Serial Drive API revision exports × N revisions</td>
+  <td><span class="tag tag-fix">Route to Tasks API</span></td>
+</tr>
+<tr>
+  <td><code>analyze_formulas</code></td>
+  <td>analyze-actions/formulas.ts</td>
+  <td><span class="tag tag-fail">Variable (60s+)</span></td>
+  <td>4-level nested loop scanning every cell in every sheet</td>
+  <td><span class="tag tag-fix">Route to Tasks API + add row cap</span></td>
+</tr>
+<tr>
+  <td><code>list_chips</code></td>
+  <td>advanced-actions/chips.ts</td>
+  <td><span class="tag tag-fail">40-60s</span></td>
+  <td>Full grid fetch + parse all cells for chipRuns</td>
+  <td><span class="tag tag-fix">Route to Tasks API</span></td>
+</tr>
+<tr>
+  <td><code>export_to_bigquery</code></td>
+  <td>handlers/bigquery.ts</td>
+  <td><span class="tag tag-p1">30-60s</span></td>
+  <td>Sheets fetch → BQ load → job poll</td>
+  <td><span class="tag tag-fix">Already task-capable; verify routing</span></td>
+</tr>
+<tr>
+  <td><code>analyze_performance</code></td>
+  <td>analyze-actions/performance.ts</td>
+  <td><span class="tag tag-p1">20-40s</span></td>
+  <td>Double spreadsheets.get() with grid data</td>
+  <td>Route to Tasks API</td>
+</tr>
+<tr>
+  <td><code>chart_create</code> (w/ Sampling)</td>
+  <td>visualize-actions/charts.ts</td>
+  <td><span class="tag tag-p1">20-35s</span></td>
+  <td>LLM Sampling call adds 15-30s</td>
+  <td>Skip Sampling for explicit chart specs; conditional task routing</td>
+</tr>
+<tr>
+  <td><code>setup_sheet</code></td>
+  <td>composite-actions/structure.ts</td>
+  <td><span class="tag tag-p2">20-45s</span></td>
+  <td>Grid data fetch + structure analysis on large sheets</td>
+  <td>Cap row scan; use metadata-only first pass</td>
+</tr>
+<tr>
+  <td><code>add_named_range</code> (a1 format)</td>
+  <td>handlers/advanced.ts</td>
+  <td><span class="tag tag-p2">Occasional timeout</span></td>
+  <td>Sheet name→sheetId resolution requires extra API call</td>
+  <td>Cache sheet name→ID mapping; prefer grid format in hints</td>
+</tr>
+<tr>
+  <td><code>COMPOSITE_TIMEOUT_MS</code></td>
+  <td>config/env.ts:193</td>
+  <td><span class="tag tag-p1">120s (exceeds MCP limit)</span></td>
+  <td>Set to 120s but MCP transport times out at 60s</td>
+  <td>Reduce to 55s or route to Tasks API</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="card warn">
+<h3>Config Fix: Align Timeout Values</h3>
+<pre>// src/config/env.ts — line 193
+// BEFORE:
+COMPOSITE_TIMEOUT_MS: z.coerce.number().positive().default(120000)  // 2 min — exceeds MCP 60s!
+
+// AFTER:
+COMPOSITE_TIMEOUT_MS: z.coerce.number().positive().default(55000)   // 55s — safe margin under MCP
+// OR: auto-route composite ops through Tasks API when estimated time > 30s</pre>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="routing">5. Intelligent Routing &amp; Usability Improvements</h2>
+
+<div class="card highlight">
+<h3>5.1 — Auto-Route to Tasks API Based on Estimated Complexity</h3>
+<p>The server already has Tasks API support (SEP-1686) for 9 tools. Add <strong>automatic complexity estimation</strong> to route heavy operations to background execution:</p>
+<pre>// NEW: src/middleware/auto-task-routing.ts
+export function shouldRouteToTask(toolName: string, action: string, input: any): boolean {
+  // Rule 1: BigQuery import/export always → task
+  if (toolName === 'sheets_bigquery' && ['export_to_bigquery', 'import_from_bigquery'].includes(action)) return true;
+
+  // Rule 2: Full-sheet scans on large sheets → task
+  if (['analyze_formulas', 'list_chips', 'analyze_performance'].includes(action)) {
+    const metadata = getCachedMetadata(input.spreadsheetId);
+    if (metadata?.totalCells > 10000) return true;
+  }
+
+  // Rule 3: Timeline with many revisions → task
+  if (action === 'timeline') return true;
+
+  // Rule 4: Composite ops that estimate > 30s
+  if (toolName === 'sheets_composite' && ['setup_sheet', 'export_large_dataset'].includes(action)) {
+    const metadata = getCachedMetadata(input.spreadsheetId);
+    if (metadata?.totalRows > 10000) return true;
+  }
+
+  return false;
+}</pre>
+</div>
+
+<div class="card">
+<h3>5.2 — Smarter Error Messages for Claude</h3>
+<table>
+<thead><tr><th>Current Error</th><th>Improved Error</th><th>Why Better</th></tr></thead>
+<tbody>
+<tr>
+  <td><code>FEATURE_UNAVAILABLE</code></td>
+  <td><code>FEATURE_UNAVAILABLE: query_natural_language requires MCP Sampling. Set ANTHROPIC_API_KEY in server env, or use sheets_analyze.quick_insights for AI-free analysis.</code></td>
+  <td>Tells LLM exactly what's missing AND suggests an alternative action</td>
+</tr>
+<tr>
+  <td><code>Expected object, received string</code></td>
+  <td><code>Range must be an object: use {a1: "Sheet1!A1:B10"} or {grid: {sheetId: 0, ...}}. Plain string ranges are accepted by sheets_compute and sheets_fix.</code></td>
+  <td>Tells LLM the correct format AND which tools accept strings</td>
+</tr>
+<tr>
+  <td><code>Column index 7 exceeds grid column count 0</code></td>
+  <td><code>Cannot place chart at Charts!H1 — the "Charts" sheet has only 1 column. Use a data sheet with sufficient columns, or specify a column within bounds (A1).</code></td>
+  <td>Human-readable; suggests fix</td>
+</tr>
+<tr>
+  <td><code>Unrecognized key: "spreadsheetId"</code></td>
+  <td><code>execute_step does not accept spreadsheetId — it inherits from the plan. Use only planId + stepId.</code></td>
+  <td>Explains the WHY, not just the WHAT</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>5.3 — LLM Routing Hints in Tool Descriptions</h3>
+<p>Add machine-readable hints to tool descriptions so Claude can pick the right tool on the first try:</p>
+<pre>// Enhanced tool description for sheets_data:
+"📊 DATA — Read/write cell values (25 actions).
+RANGE FORMAT: Always use {a1: 'Sheet!A1:B10'} objects — NOT plain strings.
+QUICK DECISION:
+  • Read cells → sheets_data.read
+  • Write cells → sheets_data.write
+  • Cross-spreadsheet → sheets_data.cross_read / cross_write
+  • Bulk format → use sheets_transaction.begin first
+  • Find/replace → sheets_data.find_replace (supports dry-run)"
+
+// Enhanced tool description for sheets_analyze:
+"🔍 ANALYZE — AI-powered analysis (22 actions).
+REQUIRES: MCP Sampling OR ANTHROPIC_API_KEY for AI features.
+AI-FREE ACTIONS: scout, quick_insights, detect_patterns (always work)
+AI-REQUIRED: query_natural_language, comprehensive (need Sampling)
+START HERE: Use scout first for any new spreadsheet."</pre>
+</div>
+
+<div class="card">
+<h3>5.4 — Idempotency Guards for Common Operations</h3>
+<p>Several operations fail when called twice. Add <strong>check-before-mutate</strong> patterns:</p>
+<table>
+<thead><tr><th>Operation</th><th>Failure Mode</th><th>Guard</th></tr></thead>
+<tbody>
+<tr>
+  <td><code>add_banding / apply_preset(alternating_rows)</code></td>
+  <td>Duplicate banding on same range</td>
+  <td>Call <code>list_banding</code> first; if exists, call <code>update_banding</code></td>
+</tr>
+<tr>
+  <td><code>add_named_range</code></td>
+  <td>Duplicate name</td>
+  <td>Call <code>get_named_range</code> first; if exists, call <code>update_named_range</code></td>
+</tr>
+<tr>
+  <td><code>add_protected_range</code></td>
+  <td>Overlapping protection</td>
+  <td>Call <code>list_protected_ranges</code>; check for overlap; warn or merge</td>
+</tr>
+<tr>
+  <td><code>freeze</code></td>
+  <td>Silent success (not a failure, but wastes API call)</td>
+  <td>Check current freeze state via <code>get_sheet</code>; skip if already frozen</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="connectors">6. Available Connectors — Setup Guide</h2>
+
+<div class="grid-2">
+  <div class="card connector-card">
+    <div class="connector-icon conn-finnhub">FH</div>
+    <div>
+      <strong>Finnhub</strong> — Stock quotes, forex, crypto, fundamentals<br>
+      <span style="color:var(--muted); font-size:0.8rem;">60 calls/min free &bull; <a href="https://finnhub.io/register" style="color:var(--accent);">Sign up →</a></span><br>
+      <code>FINNHUB_API_KEY</code>
+    </div>
+  </div>
+  <div class="card connector-card">
+    <div class="connector-icon conn-fred">FR</div>
+    <div>
+      <strong>FRED</strong> — 840K+ economic time series (GDP, CPI, rates)<br>
+      <span style="color:var(--muted); font-size:0.8rem;">120 calls/min free &bull; <a href="https://fredaccount.stlouisfed.org" style="color:var(--accent);">Sign up →</a></span><br>
+      <code>FRED_API_KEY</code>
+    </div>
+  </div>
+  <div class="card connector-card">
+    <div class="connector-icon conn-alpha">AV</div>
+    <div>
+      <strong>Alpha Vantage</strong> — Stock time series, RSI, MACD, EMA<br>
+      <span style="color:var(--muted); font-size:0.8rem;">25 calls/day free &bull; <a href="https://www.alphavantage.co/support/#api-key" style="color:var(--accent);">Claim key →</a></span><br>
+      <code>ALPHA_VANTAGE_API_KEY</code>
+    </div>
+  </div>
+  <div class="card connector-card">
+    <div class="connector-icon conn-fmp">FM</div>
+    <div>
+      <strong>Financial Modeling Prep</strong> — Income statements, DCF, screeners<br>
+      <span style="color:var(--muted); font-size:0.8rem;">250 calls/day free &bull; <a href="https://site.financialmodelingprep.com/developer/docs" style="color:var(--accent);">Sign up →</a></span><br>
+      <code>FMP_API_KEY</code>
+    </div>
+  </div>
+  <div class="card connector-card">
+    <div class="connector-icon conn-polygon">PG</div>
+    <div>
+      <strong>Polygon.io</strong> — Real-time + historical market data, options<br>
+      <span style="color:var(--muted); font-size:0.8rem;">5 calls/min free &bull; <a href="https://polygon.io/dashboard/signup" style="color:var(--accent);">Sign up →</a></span><br>
+      <code>POLYGON_API_KEY</code>
+    </div>
+  </div>
+  <div class="card connector-card">
+    <div class="connector-icon conn-public">PJ</div>
+    <div>
+      <strong>Public JSON API</strong> — Demo/test connector (no auth)<br>
+      <span style="color:var(--muted); font-size:0.8rem;">60 calls/min &bull; No signup needed</span><br>
+      <code>rest_public_json</code> — always available
+    </div>
+  </div>
+</div>
+
+<div class="card good">
+<h3>How to Configure (once you have keys)</h3>
+<pre>// Option A: Via MCP tool call (recommended — encrypted storage)
+sheets_connectors.configure({ connectorId: "finnhub", credentials: { apiKey: "YOUR_KEY" } })
+
+// Option B: Test all at once
+sheets_connectors.batch_query({
+  queries: [
+    { connectorId: "finnhub", endpoint: "stock/quote", params: { symbol: "AAPL" } },
+    { connectorId: "fred", endpoint: "series/observations", params: { series_id: "GDP" } },
+    { connectorId: "fmp", endpoint: "quote", params: { symbol: "AAPL" } }
+  ]
+})</pre>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="roadmap">7. Prioritized Fix Roadmap</h2>
+
+<div class="card">
+<table>
+<thead><tr><th>Priority</th><th>Fix</th><th>Files</th><th>Effort</th><th>Impact</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="tag tag-p0">P0</span></td>
+  <td><strong>Range format unification</strong> — replace all <code>z.string()</code> and <code>A1NotationSchema</code> ranges with <code>RangeInputSchema</code></td>
+  <td>6 schema + 5 handler files</td>
+  <td>2-3 hours</td>
+  <td>Eliminates #1 failure cause (~24 actions fixed)</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p1">P1</span></td>
+  <td><strong>Schema defaults</strong> — <code>undoable</code>, <code>referenceType</code>, wizard <code>stepId</code>/<code>title</code></td>
+  <td>session.ts, confirm.ts + handlers</td>
+  <td>30 min</td>
+  <td>4 fewer required params; 3 showcase failures eliminated</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p1">P1</span></td>
+  <td><strong>Chart anchor pre-validation</strong> — check grid bounds before Google API call</td>
+  <td>visualize-actions/charts.ts</td>
+  <td>30 min</td>
+  <td>Clear error message instead of cryptic Google API error</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p1">P1</span></td>
+  <td><strong>Sheet name→ID cache</strong> — eliminate extra API call for A1 range resolution</td>
+  <td>cached-sheets-api.ts</td>
+  <td>1 hour</td>
+  <td>Reduces timeout risk for named range/protection ops</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p1">P1</span></td>
+  <td><strong>Timeout alignment</strong> — reduce COMPOSITE_TIMEOUT_MS to 55s</td>
+  <td>config/env.ts</td>
+  <td>5 min</td>
+  <td>Prevents silent MCP transport cutoff</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p2">P2</span></td>
+  <td><strong>Auto-Task routing</strong> — route heavy ops to Tasks API based on estimated complexity</td>
+  <td>New middleware + tool-handlers.ts</td>
+  <td>3-4 hours</td>
+  <td>Eliminates 3 CRITICAL timeout operations</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p2">P2</span></td>
+  <td><strong>Idempotency guards</strong> — check-before-mutate for banding, named ranges, protection</td>
+  <td>advanced.ts, format.ts handlers</td>
+  <td>2 hours</td>
+  <td>Operations succeed on retry without manual cleanup</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p2">P2</span></td>
+  <td><strong>Enhanced error messages</strong> — include fix suggestion + alternative action in all errors</td>
+  <td>error-fix-suggester.ts + handlers</td>
+  <td>2-3 hours</td>
+  <td>LLM self-corrects on first retry instead of 2-3 attempts</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p2">P2</span></td>
+  <td><strong>LLM routing hints</strong> — add decision trees to tool descriptions</td>
+  <td>features-2025-11-25.ts, descriptions.ts</td>
+  <td>1-2 hours</td>
+  <td>Correct tool selection on first attempt</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p3">P3</span></td>
+  <td><strong>Broader schema audit</strong> — find all enums/booleans without defaults</td>
+  <td>All src/schemas/*.ts</td>
+  <td>1 hour</td>
+  <td>Preventive — catches similar issues before they surface</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="card highlight" style="margin-top: 1.5rem;">
+<h3 style="margin-top:0;">Total Implementation Estimate</h3>
+<div class="grid-3" style="margin-bottom:0;">
+  <div class="stat-box"><div class="val" style="font-size:1.6rem;">10</div><div class="lbl">Fix Items</div></div>
+  <div class="stat-box"><div class="val" style="font-size:1.6rem;">~15h</div><div class="lbl">Total Effort</div></div>
+  <div class="stat-box"><div class="val" style="font-size:1.6rem; color:var(--green);">95%+</div><div class="lbl">Projected Success Rate</div></div>
+</div>
+</div>
+
+<!-- Footer -->
+<div style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: 0.75rem;">
+  ServalSheets v1.7.0 &bull; Analysis by Claude Opus 4.6 &bull; March 19, 2026<br>
+  Sources: <a href="https://finnhub.io/docs/api/rate-limit" style="color:var(--muted);">Finnhub Docs</a> &bull;
+  <a href="https://fred.stlouisfed.org/docs/api/api_key.html" style="color:var(--muted);">FRED API</a> &bull;
+  <a href="https://www.alphavantage.co/documentation/" style="color:var(--muted);">Alpha Vantage</a> &bull;
+  <a href="https://site.financialmodelingprep.com/developer/docs" style="color:var(--muted);">FMP Docs</a> &bull;
+  <a href="https://polygon.io/docs" style="color:var(--muted);">Polygon.io</a>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**", ".tsbuildinfo.build"],
+      "inputs": [
+        "src/**/*.ts",
+        "!src/**/*.test.ts",
+        "!src/**/*.spec.ts",
+        "tsconfig.json",
+        "tsconfig.build.json",
+        "package.json"
+      ],
+      "cache": true
+    },
+    "typecheck": {
+      "dependsOn": [],
+      "outputs": [".tsbuildinfo"],
+      "inputs": ["src/**/*.ts", "tsconfig.json"],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "test:fast": {
+      "dependsOn": [],
+      "outputs": [],
+      "inputs": [
+        "src/**/*.ts",
+        "tests/unit/**/*.ts",
+        "tests/schemas/**/*.ts",
+        "tests/utils/**/*.ts",
+        "tests/core/**/*.ts",
+        "tests/handlers/**/*.ts"
+      ],
+      "cache": true
+    },
+    "lint": {
+      "outputs": [".eslintcache"],
+      "inputs": ["src/**/*.ts", "eslint.config.js"],
+      "cache": true
+    },
+    "format": {
+      "outputs": [],
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    }
+  },
+  "globalDependencies": [".env", "tsconfig.json", "tsconfig.build.json", "package.json"],
+  "globalEnv": ["NODE_ENV", "CI"]
+}

@@ -1,0 +1,63 @@
+{
+  "planId": "4a770b43-c43c-4c4e-933d-36781ae90da8",
+  "description": "read data from spreadsheet",
+  "spreadsheetId": "test-spreadsheet-abc",
+  "steps": [
+    {
+      "stepId": "invalid-step",
+      "tool": "sheets_data",
+      "action": "write",
+      "description": "Invalid write",
+      "params": {
+        "spreadsheetId": "test-spreadsheet-abc"
+      }
+    }
+  ],
+  "status": "draft",
+  "results": [],
+  "checkpoints": [
+    {
+      "checkpointId": "f275274b-032c-497b-a0fa-c7f1b325f8df",
+      "planId": "4a770b43-c43c-4c4e-933d-36781ae90da8",
+      "stepIndex": 0,
+      "context": "Execute step: Invalid write",
+      "timestamp": "2026-03-19T23:39:07.453Z"
+    }
+  ],
+  "createdAt": "2026-03-19T23:39:07.452Z",
+  "updatedAt": "2026-03-19T23:39:07.453Z",
+  "currentStepIndex": 0
+}25f8df",
+      "planId": "4a770b43-c43c-4c4e-933d-36781ae90da8",
+      "stepIndex": 0,
+      "context": "Execute step: Invalid write",
+      "timestamp": "2026-03-19T23:39:07.453Z"
+    }
+  ],
+  "createdAt": "2026-03-19T23:39:07.452Z",
+  "updatedAt": "2026-03-19T23:39:07.453Z",
+  "currentStepIndex": 0,
+  "error": "Step invalid-step has invalid params for sheets_data.write: values: Invalid input: expected array, received undefined",
+  "errorDetail": {
+    "code": "INVALID_PARAMS",
+    "message": "Step invalid-step has invalid params for sheets_data.write: values: Invalid input: expected array, received undefined",
+    "retryable": false,
+    "suggestedFix": "Correct the step parameters so they match the tool input schema.",
+    "resolutionSteps": [
+      "Inspect the params for sheets_data.write",
+      "Fill in required fields and remove incompatible values",
+      "Retry the step after the request validates"
+    ],
+    "suggestedTools": [
+      "sheets_data"
+    ],
+    "details": {
+      "validationIssues": [
+        {
+          "field": "values",
+          "message": "Invalid input: expected array, received undefined"
+        }
+      ]
+    }
+  }
+}

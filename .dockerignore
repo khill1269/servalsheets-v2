@@ -1,0 +1,79 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.backup
+
+# Build outputs
+dist
+.tsbuildinfo
+.tsbuildinfo.build
+coverage
+*.map
+
+# Environment and secrets
+.env
+.env.*
+*.enc
+servalsheets.tokens.enc
+credentials.json
+client_secret_*.json
+
+# Git and version control
+.git
+.gitignore
+.github
+
+# Documentation and development files
+docs
+README.md
+CHANGELOG.md
+QUICKSTART.md
+LICENSE
+SECURITY.md
+*.md
+!QUICKSTART.md
+
+# Test files
+tests
+test-*.js
+test-*.mjs
+*.test.ts
+*.spec.ts
+vitest.config.ts
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Temporary files
+tmp
+temp
+.cache
+
+# Scripts not needed in container
+scripts/manual
+scripts/diagnose-all.sh
+scripts/quick-test.sh
+scripts/integrate-inference.sh
+
+# Deployment files (except docker)
+deployment/kubernetes
+deployment/terraform
+
+# Assets not needed in runtime
+assets
+
+# Inspector and testing configs
+inspector.json
+start-mcp.sh

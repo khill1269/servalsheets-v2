@@ -1,0 +1,40 @@
+{
+  "planId": "1555534f-17a4-489c-ac0f-62f39ed55c48",
+  "description": "read data from spreadsheet",
+  "spreadsheetId": "test-spreadsheet-abc",
+  "steps": [
+    {
+      "stepId": "invalid-step",
+      "tool": "sheets_data",
+      "action": "write",
+      "description": "Invalid write",
+      "params": {
+        "spreadsheetId": "test-spreadsheet-abc"
+      }
+    }
+  ],
+  "status": "completed",
+  "results": [
+    {
+      "stepId": "invalid-step",
+      "success": true,
+      "result": {
+        "success": true
+      },
+      "startedAt": "2026-03-22T18:20:17.674Z",
+      "completedAt": "2026-03-22T18:20:17.674Z"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpointId": "fb698db6-249c-4662-88c0-555501ea7113",
+      "planId": "1555534f-17a4-489c-ac0f-62f39ed55c48",
+      "stepIndex": 0,
+      "context": "Execute step: Invalid write",
+      "timestamp": "2026-03-22T18:20:17.674Z"
+    }
+  ],
+  "createdAt": "2026-03-22T18:20:17.673Z",
+  "updatedAt": "2026-03-22T18:20:17.674Z",
+  "currentStepIndex": 1
+}

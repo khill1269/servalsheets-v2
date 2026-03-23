@@ -1,0 +1,277 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: servalsheets-servers.servalsheets.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+spec:
+  group: servalsheets.io
+  names:
+    kind: ServalSheetsServer
+    listKind: ServalSheetsServerList
+    plural: servalsheets-servers
+    singular: servalsheets-server
+    shortNames:
+      - sss
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: ServalSheetsServer is the Schema for the servalsheets API
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              description: ServalSheetsServerSpec defines the desired state
+              properties:
+                replicas:
+                  type: integer
+                  description: Number of replicas
+                  minimum: 1
+                  maximum: 100
+                  default: 1
+                image:
+                  type: object
+                  description: Container image configuration
+                  properties:
+                    repository:
+                      type: string
+                      default: 'servalsheets/server'
+                    tag:
+                      type: string
+                      default: 'latest'
+                    pullPolicy:
+                      type: string
+                      enum: ['Always', 'IfNotPresent', 'Never']
+                      default: 'IfNotPresent'
+                  required:
+                    - repository
+                resources:
+                  type: object
+                  description: Resource requests and limits
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                          default: '100m'
+                        memory:
+                          type: string
+                          default: '128Mi'
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                          default: '1000m'
+                        memory:
+                          type: string
+                          default: '512Mi'
+                autoscaling:
+                  type: object
+                  description: Horizontal Pod Autoscaler configuration
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    minReplicas:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                    maxReplicas:
+                      type: integer
+                      minimum: 1
+                      default: 10
+                    targetCPUUtilizationPercentage:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 70
+                    targetMemoryUtilizationPercentage:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 80
+                    targetRequestRatePerSecond:
+                      type: integer
+                      description: Target requests per second per pod
+                      minimum: 1
+                      default: 100
+                config:
+                  type: object
+                  description: ServalSheets configuration
+                  properties:
+                    oauth:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: false
+                        issuer:
+                          type: string
+                        clientId:
+                          type: string
+                        clientSecretRef:
+                          type: object
+                          description: Reference to secret containing OAuth client secret
+                          properties:
+                            name:
+                              type: string
+                            key:
+                              type: string
+                          required:
+                            - name
+                            - key
+                    google:
+                      type: object
+                      properties:
+                        credentialsSecretRef:
+                          type: object
+                          description: Reference to secret containing Google credentials
+                          properties:
+                            name:
+                              type: string
+                            key:
+                              type: string
+                          required:
+                            - name
+                            - key
+                    redis:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: false
+                        host:
+                          type: string
+                        port:
+                          type: integer
+                          default: 6379
+                        passwordSecretRef:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            key:
+                              type: string
+                    observability:
+                      type: object
+                      properties:
+                        metricsEnabled:
+                          type: boolean
+                          default: true
+                        metricsPort:
+                          type: integer
+                          default: 9090
+                        tracingEnabled:
+                          type: boolean
+                          default: false
+                        tracingEndpoint:
+                          type: string
+                ingress:
+                  type: object
+                  description: Ingress configuration
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: false
+                    className:
+                      type: string
+                      default: 'nginx'
+                    host:
+                      type: string
+                    tls:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: false
+                        secretName:
+                          type: string
+                    annotations:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+              required:
+                - replicas
+            status:
+              type: object
+              description: ServalSheetsServerStatus defines the observed state
+              properties:
+                phase:
+                  type: string
+                  description: Current phase
+                  enum: ['Pending', 'Running', 'Failed', 'Scaling']
+                  default: 'Pending'
+                replicas:
+                  type: integer
+                  description: Current number of replicas
+                readyReplicas:
+                  type: integer
+                  description: Number of ready replicas
+                conditions:
+                  type: array
+                  description: Status conditions
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                        enum: ['True', 'False', 'Unknown']
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      reason:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - type
+                      - status
+                observedGeneration:
+                  type: integer
+                  description: Most recent generation observed
+                lastScaleTime:
+                  type: string
+                  format: date-time
+                  description: Last time the autoscaler scaled
+                currentMetrics:
+                  type: object
+                  description: Current metrics
+                  properties:
+                    cpuUtilization:
+                      type: integer
+                    memoryUtilization:
+                      type: integer
+                    requestRate:
+                      type: integer
+      subresources:
+        status: {}
+        scale:
+          specReplicasPath: .spec.replicas
+          statusReplicasPath: .status.replicas
+          labelSelectorPath: .status.selector
+      additionalPrinterColumns:
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Replicas
+          type: integer
+          jsonPath: .status.replicas
+        - name: Ready
+          type: integer
+          jsonPath: .status.readyReplicas
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp

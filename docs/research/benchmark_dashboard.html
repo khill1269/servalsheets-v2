@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpreadsheetBench Results — ServalSheets</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #f5f7fa; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+        .subtitle { color: #666; margin-bottom: 24px; font-size: 14px; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card-label { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .card-value { font-size: 32px; font-weight: 700; }
+        .card-value.green { color: #10b981; }
+        .card-value.blue { color: #3b82f6; }
+        .card-value.amber { color: #f59e0b; }
+        .card-value.red { color: #ef4444; }
+        .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .chart-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .chart-card h3 { font-size: 16px; margin-bottom: 16px; color: #1a1a2e; }
+        .chart-card.full { grid-column: 1 / -1; }
+        canvas { max-height: 400px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #1f4e79; color: white; padding: 10px 12px; text-align: left; font-size: 13px; }
+        td { padding: 8px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+        tr:hover { background: #f0f7ff; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .badge.pass { background: #d1fae5; color: #065f46; }
+        .badge.fail { background: #fee2e2; color: #991b1b; }
+        .badge.ours { background: #dbeafe; color: #1e40af; }
+        @media (max-width: 768px) { .charts { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>SpreadsheetBench Results</h1>
+    <div class="subtitle">
+        Track B &middot; mcp &middot;
+        claude-sonnet-4-20250514 &middot; 
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="cards">
+        <div class="card">
+            <div class="card-label">Hard Score</div>
+            <div class="card-value blue">12.8%</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Soft Score</div>
+            <div class="card-value green">24.7%</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Instructions</div>
+            <div class="card-value">912</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Completed</div>
+            <div class="card-value green">912</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Errors</div>
+            <div class="card-value green">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Est. Cost</div>
+            <div class="card-value amber">$0.00</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts">
+        <!-- Competitive Comparison -->
+        <div class="chart-card full">
+            <h3>Competitive Comparison (Hard Score %)</h3>
+            <canvas id="compChart"></canvas>
+        </div>
+
+        <!-- By Instruction Type -->
+        <div class="chart-card">
+            <h3>Scores by Instruction Type</h3>
+            <canvas id="typeChart"></canvas>
+        </div>
+
+        <!-- Error Distribution -->
+        <div class="chart-card">
+            <h3>Error Distribution</h3>
+            <canvas id="errorChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Competitive Table -->
+    <div class="chart-card full" style="margin-bottom: 32px;">
+        <h3>Detailed Competitive Comparison</h3>
+        <table>
+            <thead>
+                <tr><th>Model / Setting</th><th>Soft Score</th><th>Hard Score</th><th>Source</th></tr>
+            </thead>
+            <tbody>
+                <tr style="background: #eff6ff;">
+                    <td><span class="badge ours">OURS</span> ServalSheets (mcp) — claude-sonnet-4-20250514</td>
+                    <td><strong>24.7%</strong></td>
+                    <td><strong>12.8%</strong></td>
+                    <td>This run</td>
+                </tr>
+                <tr>
+                    <td>GPT-4o (multi-row-react-exec)</td>
+                    <td>54.2%</td>
+                    <td>48.0%</td>
+                    <td>NeurIPS 2024 paper</td>
+                </tr>
+                <tr>
+                    <td>Claude-3.5-Sonnet (multi-row-react-exec)</td>
+                    <td>49.4%</td>
+                    <td>42.8%</td>
+                    <td>NeurIPS 2024 paper</td>
+                </tr>
+                <tr>
+                    <td>GPT-4o (single)</td>
+                    <td>44.1%</td>
+                    <td>38.1%</td>
+                    <td>NeurIPS 2024 paper</td>
+                </tr>
+                <tr>
+                    <td>Claude-3.5-Sonnet (single)</td>
+                    <td>38.6%</td>
+                    <td>32.9%</td>
+                    <td>NeurIPS 2024 paper</td>
+                </tr>
+                <tr>
+                    <td>GPT-4-Turbo (single)</td>
+                    <td>38.1%</td>
+                    <td>32.2%</td>
+                    <td>NeurIPS 2024 paper</td>
+                </tr>
+                <tr>
+                    <td>DeepSeek-V2.5 (single)</td>
+                    <td>28.5%</td>
+                    <td>23.8%</td>
+                    <td>NeurIPS 2024 paper</td>
+                </tr>
+                <tr>
+                    <td>Qwen2-72B (single)</td>
+                    <td>24.1%</td>
+                    <td>19.4%</td>
+                    <td>NeurIPS 2024 paper</td>
+                </tr>
+                <tr>
+                    <td>Llama-3.1-70B (single)</td>
+                    <td>21.3%</td>
+                    <td>17.0%</td>
+                    <td>NeurIPS 2024 paper</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Competitive comparison chart
+    new Chart(document.getElementById('compChart'), {
+        type: 'bar',
+        data: {
+            labels: ["ServalSheets (claude-sonnet-4-20250514)", "GPT-4o (multi-row-react-exec)", "Claude-3.5-Sonnet (multi-row-react-exec)", "GPT-4o (single)", "Claude-3.5-Sonnet (single)", "GPT-4-Turbo (single)", "DeepSeek-V2.5 (single)", "Qwen2-72B (single)", "Llama-3.1-70B (single)"],
+            datasets: [
+                { label: 'Hard Score', data: [12.8, 48.0, 42.8, 38.1, 32.9, 32.2, 23.8, 19.4, 17.0],
+                   backgroundColor: comp_labels.map((_, i) => i === 0 ? '#3b82f6' : '#94a3b8') },
+                { label: 'Soft Score', data: [24.7, 54.2, 49.4, 44.1, 38.6, 38.1, 28.5, 24.1, 21.3],
+                   backgroundColor: comp_labels.map((_, i) => i === 0 ? '#60a5fa' : '#cbd5e1') },
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } },
+            scales: { x: { beginAtZero: true, max: 100, title: { display: true, text: 'Score (%)' } } }
+        }
+    });
+
+    // By instruction type
+    new Chart(document.getElementById('typeChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Cell-Level', 'Sheet-Level'],
+            datasets: [
+                { label: 'Soft Score', data: [26.6, 21.6], backgroundColor: '#10b981' },
+                { label: 'Hard Score', data: [12.8, 12.8], backgroundColor: '#3b82f6' },
+            ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+    });
+
+    // Error distribution
+    new Chart(document.getElementById('errorChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ["Value mismatch", "Other error"],
+            datasets: [{ data: [704, 91],
+                          backgroundColor: ['#ef4444', '#f59e0b', '#8b5cf6', '#10b981'] }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+</script>
+</body>
+</html>

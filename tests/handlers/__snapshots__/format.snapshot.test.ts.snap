@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FormatHandler Snapshots > matches snapshot for set_format response 1`] = `
+{
+  "_meta": {
+    "costEstimate": {
+      "apiCalls": 1,
+      "cellsAffected": 4,
+      "estimatedLatencyMs": 500,
+      "quotaImpact": {
+        "current": 0,
+        "limit": 60,
+        "remaining": 59,
+      },
+    },
+  },
+  "action": "set_format",
+  "cellsFormatted": 4,
+  "success": true,
+}
+`;

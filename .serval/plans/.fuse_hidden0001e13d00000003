@@ -1,0 +1,41 @@
+{
+  "planId": "5c2b493a-adce-4b63-ae2c-b1ed566215af",
+  "description": "read data from spreadsheet",
+  "spreadsheetId": "test-spreadsheet-abc",
+  "steps": [
+    {
+      "stepId": "5c2b493a-adce-4b63-ae2c-b1ed566215af-step-0",
+      "tool": "sheets_data",
+      "action": "read",
+      "description": "Read data",
+      "params": {
+        "spreadsheetId": "test-spreadsheet-abc",
+        "range": "Sheet1!A1:B5"
+      }
+    }
+  ],
+  "status": "completed",
+  "results": [
+    {
+      "stepId": "5c2b493a-adce-4b63-ae2c-b1ed566215af-step-0",
+      "success": true,
+      "result": {
+        "success": true
+      },
+      "startedAt": "2026-03-23T04:55:06.329Z",
+      "completedAt": "2026-03-23T04:55:06.329Z"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpointId": "10ccabeb-dd2f-4185-994d-375ba3e626b3",
+      "planId": "5c2b493a-adce-4b63-ae2c-b1ed566215af",
+      "stepIndex": 0,
+      "context": "Before step: Read data",
+      "timestamp": "2026-03-23T04:55:06.329Z"
+    }
+  ],
+  "createdAt": "2026-03-23T04:55:06.329Z",
+  "updatedAt": "2026-03-23T04:55:06.329Z",
+  "currentStepIndex": 1
+}

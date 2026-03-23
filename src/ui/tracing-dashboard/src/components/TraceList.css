@@ -1,0 +1,92 @@
+.trace-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.trace-list-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.trace-item {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.trace-item:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.trace-item.selected {
+  background-color: var(--primary);
+  color: white;
+}
+
+.trace-item.selected .trace-tool,
+.trace-item.selected .trace-action,
+.trace-item.selected .trace-duration,
+.trace-item.selected .trace-time {
+  color: white;
+}
+
+.trace-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.trace-tool {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.trace-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.trace-action {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  font-family: 'Courier New', monospace;
+}
+
+.trace-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.trace-duration {
+  font-weight: 600;
+}
+
+.trace-error {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.error-code {
+  font-weight: 600;
+  color: var(--error);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.error-message {
+  color: var(--text-secondary);
+  display: block;
+}

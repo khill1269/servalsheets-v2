@@ -1,0 +1,239 @@
+# Alertmanager Configuration for ServalSheets
+# Routes alert notifications to appropriate channels based on severity
+
+global:
+  # Time to wait before resolving an alert if no updates received
+  resolve_timeout: 5m
+
+  # Slack webhook URL (can be overridden per receiver)
+  # Set via environment variable SLACK_WEBHOOK_URL
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+# Main routing tree
+route:
+  # Group alerts by name and severity to avoid notification storms
+  group_by: ['alertname', 'severity', 'component']
+
+  # How long to wait before sending the first notification
+  group_wait: 10s
+
+  # How long to wait before sending notifications about new alerts in a group
+  group_interval: 10s
+
+  # How long to wait before re-sending a notification
+  repeat_interval: 12h
+
+  # Default receiver if no route matches
+  receiver: 'default'
+
+  # Child routes with specific matchers
+  routes:
+    # ========================================
+    # CRITICAL ALERTS
+    # ========================================
+    # Critical alerts go to PagerDuty for on-call
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      group_wait: 5s
+      repeat_interval: 4h
+      continue: true # Also send to Slack
+
+    # Critical alerts also go to Slack
+    - match:
+        severity: critical
+      receiver: 'slack-critical'
+      group_wait: 5s
+
+    # ========================================
+    # WARNING ALERTS
+    # ========================================
+    # Warning alerts go to Slack
+    - match:
+        severity: warning
+      receiver: 'slack-warnings'
+      group_wait: 30s
+      repeat_interval: 6h
+
+    # ========================================
+    # INFO ALERTS
+    # ========================================
+    # Info alerts go to monitoring channel with lower priority
+    - match:
+        severity: info
+      receiver: 'slack-info'
+      group_wait: 1m
+      repeat_interval: 24h
+
+# ============================================
+# NOTIFICATION RECEIVERS
+# ============================================
+receivers:
+  # Default catch-all receiver
+  - name: 'default'
+    slack_configs:
+      - channel: '#servalsheets-alerts'
+        title: 'ServalSheets Alert'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+          {{ range .Alerts }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+  # ========================================
+  # PagerDuty for Critical Alerts
+  # ========================================
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      # Set via environment variable PAGERDUTY_SERVICE_KEY
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .CommonAnnotations.summary }}'
+        severity: '{{ .GroupLabels.severity }}'
+        client: 'ServalSheets Monitoring'
+        client_url: 'http://prometheus:9090/alerts'
+        details:
+          alert: '{{ .GroupLabels.alertname }}'
+          component: '{{ .GroupLabels.component }}'
+          severity: '{{ .GroupLabels.severity }}'
+          description: '{{ .CommonAnnotations.description }}'
+          impact: '{{ .CommonAnnotations.impact }}'
+          action: '{{ .CommonAnnotations.action }}'
+          runbook: '{{ .CommonAnnotations.runbook }}'
+          firing_alerts: '{{ .Alerts.Firing | len }}'
+          resolved_alerts: '{{ .Alerts.Resolved | len }}'
+
+  # ========================================
+  # Slack for Critical Alerts
+  # ========================================
+  - name: 'slack-critical'
+    slack_configs:
+      - channel: '#servalsheets-alerts-critical'
+        username: 'ServalSheets Alerting'
+        icon_emoji: ':rotating_light:'
+        title: 'CRITICAL: {{ .GroupLabels.alertname }}'
+        title_link: 'http://prometheus:9090/alerts'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Component:* {{ .Labels.component }}
+          *Severity:* {{ .Labels.severity }}
+
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Impact:* {{ .Annotations.impact }}
+
+          *Required Actions:*
+          {{ .Annotations.action }}
+
+          *Runbook:* <{{ .Annotations.runbook }}|View Runbook>
+          *Started:* {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+          {{ if .EndsAt }}*Ended:* {{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}{{ end }}
+          {{ end }}
+        color: danger
+        send_resolved: true
+
+  # ========================================
+  # Slack for Warning Alerts
+  # ========================================
+  - name: 'slack-warnings'
+    slack_configs:
+      - channel: '#servalsheets-alerts'
+        username: 'ServalSheets Alerting'
+        icon_emoji: ':warning:'
+        title: 'Warning: {{ .GroupLabels.alertname }}'
+        title_link: 'http://prometheus:9090/alerts'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Component:* {{ .Labels.component }}
+
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Impact:* {{ .Annotations.impact }}
+
+          {{ if .Annotations.action }}*Recommended Actions:*
+          {{ .Annotations.action }}{{ end }}
+
+          {{ if .Annotations.runbook }}*Runbook:* <{{ .Annotations.runbook }}|View Runbook>{{ end }}
+          *Started:* {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+          {{ end }}
+        color: warning
+        send_resolved: true
+
+  # ========================================
+  # Slack for Info Alerts
+  # ========================================
+  - name: 'slack-info'
+    slack_configs:
+      - channel: '#servalsheets-monitoring'
+        username: 'ServalSheets Monitoring'
+        icon_emoji: ':information_source:'
+        title: 'Info: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Component:* {{ .Labels.component }}
+
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+
+          {{ if .Annotations.action }}*Actions:* {{ .Annotations.action }}{{ end }}
+          *Started:* {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+          {{ end }}
+        color: good
+        send_resolved: true
+
+# ============================================
+# INHIBITION RULES
+# ============================================
+# Suppress less severe alerts when more severe alerts are firing
+inhibit_rules:
+  # Suppress warning alerts if critical alerts are firing for the same component
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['component', 'alertname']
+
+  # Suppress info alerts if warning alerts are firing for the same component
+  - source_match:
+      severity: warning
+    target_match:
+      severity: info
+    equal: ['component', 'alertname']
+
+  # Suppress info alerts if critical alerts are firing for the same component
+  - source_match:
+      severity: critical
+    target_match:
+      severity: info
+    equal: ['component', 'alertname']
+
+  # Suppress queue backup alerts if service is down
+  - source_match:
+      alertname: ServiceDown
+    target_match:
+      alertname: RequestQueueBackup
+    equal: []
+
+  # Suppress high latency alerts if service is down
+  - source_match:
+      alertname: ServiceDown
+    target_match_re:
+      alertname: HighLatency.*
+    equal: []
+
+  # Suppress Google API errors if circuit breaker is open
+  - source_match:
+      alertname: CircuitBreakerOpen
+    target_match:
+      alertname: GoogleAPIErrorRate
+    equal: ['component']
+
+  # Suppress cache alerts if service is down
+  - source_match:
+      alertname: ServiceDown
+    target_match_re:
+      alertname: (LowCacheHitRate|HighCacheEvictionRate|LargeCacheSize)
+    equal: []

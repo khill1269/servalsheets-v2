@@ -1,0 +1,71 @@
+{
+  "planId": "0281e9af-4f8f-4049-bb26-6c5993303343",
+  "description": "read data from spreadsheet",
+  "spreadsheetId": "test-spreadsheet-abc",
+  "steps": [
+    {
+      "stepId": "verified-write",
+      "tool": "sheets_data",
+      "action": "clear",
+      "description": "Clear values from Sheet1",
+      "params": {
+        "spreadsheetId": "test-spreadsheet-abc",
+        "range": "Sheet1!A1:B2"
+      }
+    }
+  ],
+  "status": "paused",
+  "results": [
+    {
+      "stepId": "verified-write",
+      "success": false,
+      "result": {
+        "response": {
+          "success": true,
+          "action": "clear"
+        }
+      },
+      "error": "Post-step verification failed for sheets_data.clear: Range Sheet1!A1:B2 still contains values after clear",
+      "startedAt": "2026-03-23T04:53:29.595Z",
+      "completedAt": "2026-03-23T04:53:29.595Z"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpointId": "b936206a-1283-4b56-9bc2-2201c09eea4a",
+      "planId": "0281e9af-4f8f-4049-bb26-6c5993303343",
+      "stepIndex": 0,
+      "context": "Before step: Clear values from Sheet1",
+      "timestamp": "2026-03-23T04:53:29.595Z"
+    }
+  ],
+  "createdAt": "2026-03-23T04:53:29.595Z",
+  "updatedAt": "2026-03-23T04:53:29.595Z",
+  "currentStepIndex": 0,
+  "error": "Post-step verification failed for sheets_data.clear: Range Sheet1!A1:B2 still contains values after clear",
+  "errorDetail": {
+    "code": "FAILED_PRECONDITION",
+    "message": "Post-step verification failed for sheets_data.clear: Range Sheet1!A1:B2 still contains values after clear",
+    "retryable": false,
+    "suggestedFix": "Inspect the target range or sheet, then correct the step before retrying.",
+    "resolutionSteps": [
+      "Review the target affected by sheets_data.clear",
+      "Confirm the intended cells or sheet changed as expected",
+      "Retry the step only after the mismatch is understood"
+    ],
+    "suggestedTools": [
+      "sheets_data",
+      "sheets_analyze",
+      "sheets_core"
+    ],
+    "details": {
+      "range": "Sheet1!A1:B2",
+      "actualValues": [
+        [
+          "Mismatch",
+          "Value"
+        ]
+      ]
+    }
+  }
+}

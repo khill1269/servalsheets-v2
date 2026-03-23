@@ -1,0 +1,168 @@
+name: 🐌 Performance Issue
+description: Report slow performance or high resource usage
+labels: ['performance', 'needs-triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a performance issue!
+
+        Performance data helps us optimize ServalSheets for everyone.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I've searched existing issues and this is not a duplicate
+          required: true
+        - label: I'm using the latest version of ServalSheets
+          required: true
+        - label: I've profiled the operation (optional but helpful)
+          required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Performance Issue Description
+      description: Describe the performance problem
+      placeholder: 'Reading 10,000 rows takes 45 seconds, much slower than expected...'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Performance Issue Type
+      description: What type of performance issue are you experiencing?
+      options:
+        - Slow response time
+        - High CPU usage
+        - High memory usage
+        - Network latency
+        - Quota/rate limiting
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps
+      description: How can we reproduce the performance issue?
+      placeholder: |
+        1. Call sheets_data with action="read" and range="A1:Z10000"
+        2. Measure time taken (45 seconds)
+        3. Check memory usage (800MB)
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Performance Metrics
+      description: Provide specific measurements if available
+      placeholder: |
+        - Response time: 45 seconds
+        - Memory usage: 800MB
+        - CPU usage: 90%
+        - Request rate: 10 req/sec
+        - Data size: 10,000 rows × 26 columns
+      value: |
+        - Response time:
+        - Memory usage:
+        - CPU usage:
+        - Data size:
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Performance
+      description: What performance were you expecting?
+      placeholder: 'Expected response time < 5 seconds for 10,000 rows...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: profiling
+    attributes:
+      label: Profiling Data
+      description: If you've profiled the code, paste relevant output here
+      render: shell
+      placeholder: |
+        # Example from Chrome DevTools or clinic.js
+        Function                 Time    Calls
+        ----------------------------------------
+        validateSchema()         20s     10000
+        parseRange()            15s     10000
+        ...
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: ServalSheets Version
+      placeholder: '1.6.0'
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js Version
+      placeholder: 'v20.10.0'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      options:
+        - STDIO
+        - HTTP/SSE
+        - Streamable HTTP
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool(s) Affected
+      multiple: true
+      options:
+        - sheets_data (read/write)
+        - sheets_format
+        - sheets_analyze
+        - sheets_visualize
+        - Batch operations
+        - All tools (general performance)
+        - Other (specify below)
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Describe your deployment environment
+      placeholder: |
+        - Deployment: Docker on AWS ECS
+        - Instance: t3.medium (2 vCPU, 4GB RAM)
+        - Load: 100 concurrent users
+        - Redis: Enabled
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information (logs, graphs, etc.)
+    validations:
+      required: false

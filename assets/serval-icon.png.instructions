@@ -1,0 +1,12 @@
+To add your custom serval icon:
+
+1. Save your serval image as: /Users/thomascahill/Documents/mcp-servers/servalsheets/assets/serval-icon.png
+
+2. The icon will be referenced in server.json metadata for:
+   - Future MCP directory listings
+   - Documentation
+   - Potential future UI support
+
+Note: Claude Desktop and Claude Code currently show a standard "hammer" icon
+for all MCP servers, not custom per-server icons. Your icon will be ready
+when this feature becomes available.

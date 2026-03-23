@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="120" height="120" rx="20" fill="#0F9D58"/>
+
+  <!-- Grid pattern (spreadsheet) -->
+  <g opacity="0.2">
+    <line x1="30" y1="30" x2="90" y2="30" stroke="white" stroke-width="2"/>
+    <line x1="30" y1="50" x2="90" y2="50" stroke="white" stroke-width="2"/>
+    <line x1="30" y1="70" x2="90" y2="70" stroke="white" stroke-width="2"/>
+    <line x1="30" y1="90" x2="90" y2="90" stroke="white" stroke-width="2"/>
+    <line x1="30" y1="30" x2="30" y2="90" stroke="white" stroke-width="2"/>
+    <line x1="50" y1="30" x2="50" y2="90" stroke="white" stroke-width="2"/>
+    <line x1="70" y1="30" x2="70" y2="90" stroke="white" stroke-width="2"/>
+    <line x1="90" y1="30" x2="90" y2="90" stroke="white" stroke-width="2"/>
+  </g>
+
+  <!-- Stylized "S" for Serval -->
+  <path d="M 45 35 Q 40 35 40 40 L 40 50 Q 40 55 45 55 L 65 55 Q 70 55 70 60 L 70 70 Q 70 75 65 75 L 45 75 Q 40 75 40 80"
+        stroke="white"
+        stroke-width="8"
+        stroke-linecap="round"
+        fill="none"/>
+
+  <!-- Accent marks (representing data cells) -->
+  <circle cx="75" cy="40" r="3" fill="#FFF"/>
+  <circle cx="85" cy="48" r="3" fill="#FFF"/>
+  <circle cx="78" cy="85" r="3" fill="#FFF"/>
+</svg>

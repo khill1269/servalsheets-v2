@@ -1,0 +1,120 @@
+# ServalSheets Production Stack
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  # ServalSheets HTTP Server (Production)
+  servalsheets:
+    image: ghcr.io/khill1269/servalsheets:latest
+    container_name: servalsheets-prod
+    ports:
+      - '3000:3000'
+    environment:
+      # Server config
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - HOST=0.0.0.0
+
+      # Google OAuth (required)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+
+      # Redis connection
+      - REDIS_URL=redis://redis:6379
+
+      # OAuth provider mode (recommended for production)
+      - OAUTH_ENABLED=true
+      - OAUTH_ISSUER=${OAUTH_ISSUER}
+      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - STATE_SECRET=${STATE_SECRET}
+      - ALLOWED_REDIRECT_URIS=${ALLOWED_REDIRECT_URIS}
+
+      # Rate limiting
+      - RATE_LIMIT_WINDOW_MS=60000
+      - RATE_LIMIT_MAX=100
+
+      # Monitoring
+      - TRACE_AGGREGATION_ENABLED=true
+      - METRICS_ENABLED=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health/live']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    networks:
+      - servalsheets
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # Redis with persistence (Production)
+  redis:
+    image: redis:7-alpine
+    container_name: servalsheets-redis-prod
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    networks:
+      - servalsheets
+
+  # Optional: Nginx reverse proxy with TLS
+  nginx:
+    image: nginx:alpine
+    container_name: servalsheets-nginx
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deployment/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deployment/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - servalsheets
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: always
+    networks:
+      - servalsheets
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  servalsheets:
+    driver: bridge

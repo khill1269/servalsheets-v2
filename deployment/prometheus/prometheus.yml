@@ -1,0 +1,109 @@
+# Prometheus Configuration for ServalSheets
+# Collects metrics and evaluates alert rules
+
+global:
+  # How frequently to scrape targets
+  scrape_interval: 15s
+
+  # How frequently to evaluate alert rules
+  evaluation_interval: 30s
+
+  # Attach these labels to any time series or alerts
+  external_labels:
+    cluster: 'servalsheets-production'
+    service: 'servalsheets'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+      timeout: 10s
+
+# Load alert rules from files
+rule_files:
+  - 'alerts.yml'
+  # - 'recording_rules.yml'  # Optional: add recording rules for complex queries
+
+# Scrape configurations
+scrape_configs:
+  # ========================================
+  # ServalSheets MCP Server
+  # ========================================
+  - job_name: 'servalsheets'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+
+    # Static configuration (update for your deployment)
+    static_configs:
+      - targets:
+          # If ServalSheets runs in Docker Compose: use service name
+          - 'servalsheets:3000'
+          # If ServalSheets runs on host: use host.docker.internal:3000
+          # - 'host.docker.internal:3000'
+        labels:
+          environment: 'production'
+          instance: 'servalsheets-1'
+
+    # Or use file-based service discovery
+    # file_sd_configs:
+    #   - files:
+    #       - 'targets/servalsheets.json'
+    #     refresh_interval: 30s
+
+    # Or use Kubernetes service discovery
+    # kubernetes_sd_configs:
+    #   - role: pod
+    #     namespaces:
+    #       names:
+    #         - servalsheets
+    # relabel_configs:
+    #   - source_labels: [__meta_kubernetes_pod_label_app]
+    #     action: keep
+    #     regex: servalsheets
+    #   - source_labels: [__meta_kubernetes_pod_name]
+    #     target_label: pod
+    #   - source_labels: [__meta_kubernetes_namespace]
+    #     target_label: namespace
+
+  # ========================================
+  # Prometheus Self-Monitoring
+  # ========================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+          - 'localhost:9090'
+
+  # ========================================
+  # Alertmanager Monitoring
+  # ========================================
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets:
+          - 'alertmanager:9093'
+
+  # ========================================
+  # Node Exporter (Optional - System Metrics)
+  # ========================================
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets:
+  #         - 'node-exporter:9100'
+
+# Remote write (optional - for long-term storage)
+# remote_write:
+#   - url: 'http://cortex:9009/api/prom/push'
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 200
+#       min_shards: 1
+#       max_samples_per_send: 5000
+#       batch_send_deadline: 5s
+#       min_backoff: 30ms
+#       max_backoff: 100ms
+
+# Storage configuration
+# Note: Retention settings are configured via command-line flags in docker-compose.yml
+# See: --storage.tsdb.retention.time and related flags

@@ -1,0 +1,8 @@
+# clasp config (contains your script ID - don't commit)
+.clasp.json
+
+# Apps Script cache
+.clasprc.json
+
+# Node modules if you add any build tools
+node_modules/

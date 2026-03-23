@@ -1,0 +1,72 @@
+# ServalSheets Development Stack
+# Usage: docker-compose up
+
+version: '3.8'
+
+services:
+  # ServalSheets HTTP Server
+  servalsheets:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: servalsheets
+    ports:
+      - '3000:3000'
+    environment:
+      # Server config
+      - NODE_ENV=development
+      - PORT=3000
+      - LOG_LEVEL=debug
+
+      # Google OAuth (required - set in .env)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+
+      # Redis connection
+      - REDIS_URL=redis://redis:6379
+
+      # Optional: OAuth provider mode
+      - OAUTH_ENABLED=${OAUTH_ENABLED:-false}
+      - OAUTH_ISSUER=${OAUTH_ISSUER:-http://localhost:3000}
+      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - STATE_SECRET=${STATE_SECRET}
+      - ALLOWED_REDIRECT_URIS=${ALLOWED_REDIRECT_URIS:-http://localhost:3000/callback}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health/live']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - servalsheets
+
+  # Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: servalsheets-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - servalsheets
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  servalsheets:
+    driver: bridge

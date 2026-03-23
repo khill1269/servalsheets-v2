@@ -1,0 +1,73 @@
+name: Claude Auto-Fix
+
+on:
+  # Trigger when CI fails on main/remediation branches
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main, "remediation/**"]
+
+concurrency:
+  group: claude-fix-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  fix-failures:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 1
+
+      # Node.js required so Claude can run npm commands (verify:safe, schema:commit, test:fast)
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check failure type (skip lint-only failures)
+        id: failure-type
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            const failedJobs = jobs.data.jobs
+              .filter(j => j.conclusion === 'failure')
+              .map(j => j.name.toLowerCase());
+            const lintOnly = failedJobs.length > 0 &&
+              failedJobs.every(j => j.includes('lint') || j.includes('format'));
+            core.setOutput('lint_only', lintOnly.toString());
+            console.log('Failed jobs:', failedJobs);
+            console.log('Lint-only failure:', lintOnly);
+
+      - name: Skip lint-only failures
+        if: steps.failure-type.outputs.lint_only == 'true'
+        run: |
+          echo "Skipping auto-fix: only lint/format jobs failed (not worth LLM cost)"
+          echo "Failed jobs were lint/format-only. Fix manually." >> $GITHUB_STEP_SUMMARY
+
+      - uses: anthropics/claude-code-action@d59651bd82c48d81756854675ce4fa4d69722200 # v1
+        if: steps.failure-type.outputs.lint_only != 'true'
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            CI failed on this commit. Diagnose the failure, fix it with a minimal patch
+            (per CLAUDE.md: ≤3 src/ files unless tests require more), and open a PR with the fix.
+            Run `npm run verify:safe` to confirm the fix before committing.
+            If the failure is in schema files, run `npm run schema:commit` first.
+            Do NOT push directly to main or remediation branches — always open a new fix/ branch PR.
+          claude_args: "--max-turns 15 --model claude-opus-4-6"

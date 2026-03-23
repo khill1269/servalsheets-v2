@@ -1,0 +1,9 @@
+self-hosted-runner:
+  labels: []
+
+shellcheck:
+  # SC2086: Double quote to prevent globbing and word splitting.
+  # Suppressed because GitHub Actions environment variables like $GITHUB_STEP_SUMMARY
+  # are safe single-word values that do not require quoting in these contexts.
+  disable:
+    - SC2086

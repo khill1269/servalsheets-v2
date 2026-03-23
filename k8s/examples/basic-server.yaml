@@ -1,0 +1,42 @@
+apiVersion: servalsheets.io/v1alpha1
+kind: ServalSheetsServer
+metadata:
+  name: servalsheets-prod
+  namespace: default
+spec:
+  replicas: 3
+  image:
+    repository: servalsheets/server
+    tag: '1.6.0'
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: '200m'
+      memory: '256Mi'
+    limits:
+      cpu: '2000m'
+      memory: '1Gi'
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    targetRequestRatePerSecond: 100
+  config:
+    redis:
+      enabled: true
+      host: redis-service
+      port: 6379
+    observability:
+      metricsEnabled: true
+      metricsPort: 9090
+  ingress:
+    enabled: true
+    className: nginx
+    host: servalsheets.example.com
+    tls:
+      enabled: true
+      secretName: servalsheets-tls
+    annotations:
+      cert-manager.io/cluster-issuer: 'letsencrypt-prod'

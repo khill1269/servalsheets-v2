@@ -1,0 +1,271 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.tsbuildinfo
+.tsbuildinfo.build
+*.tsbuildinfo
+.eslintcache
+.turbo
+
+# Code analysis reports
+.jscpd/
+jscpd-report.json
+
+# Ephemeral research/audit docs (created by sub-agents, not for version control)
+API_AUDIT_INDEX.md
+COMPETITIVE_GAP_DEEP_DIVE.md
+GOOGLE_API_TACTICAL_FINDINGS.md
+PHASE6_SPECIFICATION.md
+PHASE_1B_INTEGRATION_GUIDE.md
+PHASE_1B_QUICK_REFERENCE.md
+.serval/audit-findings-wave1.md
+.serval/corrections.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.test
+
+# Credentials
+*.pem
+*.key
+*.json
+!package.json
+!package-lock.json
+!manifest.json
+!tsconfig.json
+!tsconfig.build.json
+!tsconfig.eslint.json
+!inspector.json
+!server.json
+!src/generated/manifest.json
+!.prettierrc.json
+!scripts/handler-metadata.json
+!turbo.json
+!src/security/tool-hashes.baseline.json
+!.discovery-cache/snapshots/*.json
+!vitest.config.ts
+!tests/config/test-credentials.example.json
+!claude_desktop_config.example.json
+service-account*.json
+credentials*.json
+gha-creds-*.json
+tests/config/test-credentials.json
+claude_desktop_config.json
+claude-desktop-config.json
+.secrets/
+*.tokens.enc
+*.enc
+
+# Logs
+*.log
+npm-debug.log*
+audit-logs/
+
+# Test coverage
+coverage/
+.nyc_output/
+.vitest/
+
+# Test output files
+test-errors.csv
+test-errors.log
+test-performance.json
+test-results-comprehensive.json
+test-results*.json
+
+# Performance tracking history
+.performance-history/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.old
+*~
+*.backup
+*.orig
+
+# Discovery API cache (volatile — regenerate with --force-refresh)
+# Root-level JSON cache files are volatile; snapshots/ subdir is committed
+.discovery-cache/*.json
+.test-discovery-cache/
+
+# Debug and tracing files
+traces.jsonl
+replay.jsonl
+test-replay.jsonl
+
+# Session/cleanup documents in root (temporary analysis)
+/*SESSION*.md
+/*CLEANUP*.md
+/*ANALYSIS*.md
+/*SUMMARY*.md
+/*REPORT*.md
+/*PLAN*.md
+
+# Root-level adhoc test/benchmark scripts (should be in scripts/ or tests/)
+/test-*.mjs
+/test-*.js
+/test-*.sh
+/perf-*.mjs
+/perf-*.js
+/profile-*.mjs
+/profile-*.js
+/benchmark-*.mjs
+/benchmark-*.js
+/run-*-tests.sh
+/*-test-results*.txt
+/*-test-results*.json
+/test-output*.txt
+/*.txt
+
+# Documentation - Auto-generated (TypeDoc)
+docs/generated/
+docs/.vitepress/dist/
+docs/development/complete-file-audit/
+
+# Analysis reports (Word/Excel documents)
+reports/
+
+# Build artifacts and packages
+*.tgz
+*.mcpb
+package/
+
+# Temporary/experimental files
+scripts/agent-prompts/
+scripts/manual/
+scripts/collect-evidence.sh
+scripts/diagnose-all.sh
+scripts/integrate-inference.sh
+DEPLOYMENT_READY.md
+INVARIANT_TEST_SUITE.md
+REALITY_MAP_EXECUTION_PATHS.md
+RESOURCE_ARCHITECTURE_DIAGRAM.md
+docs/MASTER_ANALYSIS_PROMPT.md
+docs/NL_EXCELLENCE_PLAN.md
+examples/js-compiled/
+src/handlers-v2/
+src/__tests__/
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.github/instructions/snyk_rules.instructions.md
+
+# Python cache
+.mypy_cache/
+
+# Production cleanup - temporary test directories
+/.probe-delete-*/
+/.test-discovery-cache-*/
+/.test-custom-cache/
+
+# Bundle directory (duplicate build artifact)
+/bundle/
+
+# Root-level office documents (development artifacts)
+/*.docx
+/*.xlsx
+
+# Root-level HTML reports
+/*.html
+
+# Large source assets (optional to commit)
+assets/source/
+
+# Generated OpenAPI specs and SDKs
+openapi.yaml
+openapi.json
+sdks/
+
+# Agent Framework (ephemeral context)
+.agent-context/
+.claude/agent-memory-local/
+
+# Stryker mutation testing sandboxes
+.stryker-tmp/
+mutation-output.txt
+
+# Test results and artifacts
+test-results/
+audit-output/
+
+# Development scratch dirs (not source code)
+developmentfiles/
+servalroot/
+dashboard/
+releases/
+
+# Binary documents in docs/ (use Google Drive instead)
+docs/**/*.docx
+docs/**/*.xlsx
+docs/reports/
+docs/business/*.docx
+docs/business/*.xlsx
+
+# Claude Code auto-generated docs (keep agents/ and settings)
+.claude/*_COMPLETE.md
+.claude/*_REPORT.md
+.claude/*_SUMMARY.md
+.claude/*_STATUS.md
+.claude/AGENT_*.md
+.claude/FRAMEWORK_*.md
+.claude/IMPROVEMENTS_*.md
+.claude/SETUP_*.md
+.claude/CONFIGURATION_*.md
+.claude/COMMAND_REFERENCE.md
+.claude/MODEL_SELECTION_GUIDE.md
+.claude/QUICK_START*.md
+
+# Tracing env files
+.env.tracing.*
+
+# LibreOffice/MS Office lock files
+.~lock.*
+
+# Claude Code worktrees (temporary isolated branches)
+.claude/worktrees/
+
+# Auto-generated runtime artifacts
+audit-logs/
+architecture-graph.svg
+PROJECT_SNAPSHOT.md
+.serval/wal/
+
+# External framework evaluation docs (not project code)
+/AQUI-VR_*.md
+/AQUI-VR_*.pdf
+.github/AQUI-VR_AUDIT_CARD.md
+docs/AQUI-VR_*.md
+docs/AQUI-VR_*.pdf
+
+# Auto-generated competitive analysis and advancement plans
+docs/COMPETITIVE_ANALYSIS.md
+docs/COMPETITIVE_ANALYSIS.html
+docs/METRICS_DASHBOARD.md
+docs/NEXT_LEVEL_ADVANCEMENT_PLAN.md
+docs/SERVALSHEETS_ADVANCEMENT_PLAN_V*.md
+
+# Generated review artifacts
+docs/review/
+.probe-data/
+.probe-profiles/
+servalsheets-mega-prompt.md
+
+# Companion server runtime artifacts (M-18)
+tools/test-intelligence-server/test-intelligence.db
+tools/test-intelligence-server/*.db
