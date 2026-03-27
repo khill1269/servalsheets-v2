@@ -1,0 +1,326 @@
+version: 0.2
+
+# ============================================================================
+# ServalSheets Self-Healing Pipeline Stage
+# ============================================================================
+# This buildspec is triggered when the Build stage fails. It:
+# 1. Fetches the failed build's error logs from CloudWatch
+# 2. Reads the relevant source files
+# 3. Sends everything to Claude on Bedrock via Converse API
+# 4. Applies the AI-generated fix
+# 5. Pushes the fix back to GitHub
+# 6. Re-triggers the pipeline
+#
+# Uses: Bedrock inference profile 4bcokecm5af8 with guardrail rur8hed14y0b
+# ============================================================================
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_ACCOUNT_ID: '050752643237'
+    REPO_OWNER: khill1269
+    REPO_NAME: servalsheets-v2
+    BRANCH: main
+    BUILD_PROJECT_NAME: servalsheets-build
+    INFERENCE_PROFILE: 'arn:aws:bedrock:us-east-1:050752643237:application-inference-profile/4bcokecm5af8'
+    GUARDRAIL_ID: rur8hed14y0b
+    GUARDRAIL_VERSION: '2'
+    MAX_HEAL_ATTEMPTS: '3'
+    PIPELINE_NAME: servalsheets-production
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+      nodejs: 20
+    commands:
+      - pip3 install boto3 pygithub
+
+  build:
+    commands:
+      - echo '=== ServalSheets Self-Healing Pipeline ==='
+      - |
+        python3 << 'HEAL_SCRIPT'
+        import boto3
+        import json
+        import os
+        import re
+        import sys
+        from github import Github
+        from datetime import datetime
+
+        # ── Config ──
+        region = os.environ['AWS_DEFAULT_REGION']
+        build_project = os.environ['BUILD_PROJECT_NAME']
+        inference_profile = os.environ['INFERENCE_PROFILE']
+        guardrail_id = os.environ['GUARDRAIL_ID']
+        guardrail_version = os.environ['GUARDRAIL_VERSION']
+        max_attempts = int(os.environ.get('MAX_HEAL_ATTEMPTS', '3'))
+        repo_owner = os.environ['REPO_OWNER']
+        repo_name = os.environ['REPO_NAME']
+        branch = os.environ['BRANCH']
+        pipeline_name = os.environ['PIPELINE_NAME']
+
+        # ── Clients ──
+        codebuild = boto3.client('codebuild', region_name=region)
+        logs_client = boto3.client('logs', region_name=region)
+        bedrock = boto3.client('bedrock-runtime', region_name=region)
+        codepipeline = boto3.client('codepipeline', region_name=region)
+        ssm = boto3.client('ssm', region_name=region)
+
+        # ── Track heal attempts to prevent infinite loops ──
+        attempt_key = f'/servalsheets/heal-attempts/{build_project}'
+        try:
+            current_attempts = int(ssm.get_parameter(Name=attempt_key)['Parameter']['Value'])
+        except ssm.exceptions.ParameterNotFound:
+            current_attempts = 0
+
+        if current_attempts >= max_attempts:
+            print(f'⛔ Max heal attempts ({max_attempts}) reached. Stopping self-heal loop.')
+            print('Manual intervention required. Reset with:')
+            print(f'  aws ssm put-parameter --name {attempt_key} --value "0" --type String --overwrite')
+            sys.exit(1)
+
+        # Increment attempt counter
+        ssm.put_parameter(Name=attempt_key, Value=str(current_attempts + 1), Type='String', Overwrite=True)
+        print(f'🔄 Self-heal attempt {current_attempts + 1}/{max_attempts}')
+
+        # ── Step 1: Get the latest failed build ──
+        print('\n📋 Step 1: Fetching failed build logs...')
+        builds = codebuild.list_builds_for_project(projectName=build_project, sortOrder='DESCENDING')
+        build_ids = builds.get('ids', [])[:5]
+
+        failed_build = None
+        for bid in build_ids:
+            build_info = codebuild.batch_get_builds(ids=[bid])['builds'][0]
+            if build_info['buildStatus'] == 'FAILED':
+                failed_build = build_info
+                break
+
+        if not failed_build:
+            print('✅ No failed builds found. Nothing to heal.')
+            ssm.put_parameter(Name=attempt_key, Value='0', Type='String', Overwrite=True)
+            sys.exit(0)
+
+        # Get error logs
+        log_group = failed_build['logs']['groupName']
+        log_stream = failed_build['logs']['streamName']
+
+        log_events = logs_client.get_log_events(
+            logGroupName=log_group,
+            logStreamName=log_stream,
+            limit=100
+        )
+        error_log = '\n'.join([e['message'] for e in log_events['events']])
+
+        # Identify the failed phase and error
+        failed_phases = [p for p in failed_build.get('phases', []) if p.get('phaseStatus') == 'FAILED']
+        phase_info = failed_phases[0] if failed_phases else {'phaseType': 'UNKNOWN'}
+        error_context = json.dumps(phase_info.get('contexts', []), indent=2)
+
+        print(f'  Failed phase: {phase_info.get("phaseType")}')
+        print(f'  Error context: {error_context[:500]}')
+
+        # ── Step 2: Read relevant source files ──
+        print('\n📂 Step 2: Reading source files...')
+
+        # Parse error log for file references
+        file_pattern = re.compile(r'(src/[\w/.-]+\.ts|buildspec\.yml|Dockerfile|package\.json)\(?(\d+)?')
+        referenced_files = list(set(m.group(1) for m in file_pattern.finditer(error_log)))
+
+        # Always include key config files
+        key_files = ['buildspec.yml', 'Dockerfile', 'package.json', 'tsconfig.json']
+        for kf in key_files:
+            if kf not in referenced_files:
+                referenced_files.append(kf)
+
+        # Read files via GitHub API
+        gh_token = os.environ.get('GITHUB_TOKEN', '')
+        if not gh_token:
+            # Try SSM parameter
+            try:
+                gh_token = ssm.get_parameter(Name='/servalsheets/github-token', WithDecryption=True)['Parameter']['Value']
+            except:
+                print('⚠️  No GitHub token available. Will attempt fix via CodeStar connection.')
+
+        file_contents = {}
+        if gh_token:
+            g = Github(gh_token)
+            repo = g.get_repo(f'{repo_owner}/{repo_name}')
+            for filepath in referenced_files[:10]:  # Limit to 10 files
+                try:
+                    content = repo.get_contents(filepath, ref=branch)
+                    if content.size < 50000:  # Skip files > 50KB
+                        file_contents[filepath] = content.decoded_content.decode('utf-8')
+                        print(f'  ✓ Read {filepath} ({content.size} bytes)')
+                except Exception as e:
+                    print(f'  ✗ Could not read {filepath}: {e}')
+
+        # ── Step 3: Ask Bedrock to diagnose and fix ──
+        print('\n🤖 Step 3: Consulting Claude on Bedrock for fix...')
+
+        source_context = '\n\n'.join([
+            f'--- {path} ---\n{content}'
+            for path, content in file_contents.items()
+        ])
+
+        prompt = f"""You are a senior TypeScript/Node.js DevOps engineer. A CI/CD build for the ServalSheets MCP server has failed.
+
+## Failed Build Phase
+{phase_info.get('phaseType', 'UNKNOWN')}
+
+## Error Log (last 100 lines)
+```
+{error_log[-5000:]}
+```
+
+## Source Files
+{source_context[:30000]}
+
+## Your Task
+1. Diagnose the root cause of the build failure
+2. Determine which file(s) need to be modified
+3. Provide the EXACT fix as a JSON array of file patches
+
+IMPORTANT: 
+- Only fix the actual error. Don't refactor or change anything else.
+- If the error is transient (network timeout, rate limit), respond with {{"transient": true, "retry": true}}
+- If you cannot determine the fix, respond with {{"unknown": true, "diagnosis": "explanation"}}
+
+Respond with ONLY valid JSON in this format:
+{{
+  "diagnosis": "Brief explanation of the root cause",
+  "transient": false,
+  "fixes": [
+    {{
+      "file": "path/to/file.ts",
+      "description": "What this fix does",
+      "search": "exact string to find in the file",
+      "replace": "exact string to replace it with"
+    }}
+  ]
+}}"""
+
+        try:
+            response = bedrock.converse(
+                modelId=inference_profile,
+                messages=[{
+                    'role': 'user',
+                    'content': [{'text': prompt}]
+                }],
+                inferenceConfig={
+                    'maxTokens': 4096,
+                    'temperature': 0.1
+                },
+                guardrailConfig={
+                    'guardrailIdentifier': guardrail_id,
+                    'guardrailVersion': guardrail_version
+                }
+            )
+
+            ai_response = response['output']['message']['content'][0]['text']
+            print(f'  Bedrock response received ({len(ai_response)} chars)')
+
+            # Parse the JSON response
+            # Handle markdown code blocks if present
+            if '```json' in ai_response:
+                ai_response = ai_response.split('```json')[1].split('```')[0]
+            elif '```' in ai_response:
+                ai_response = ai_response.split('```')[1].split('```')[0]
+
+            fix_plan = json.loads(ai_response.strip())
+            print(f'  Diagnosis: {fix_plan.get("diagnosis", "N/A")}')
+
+        except Exception as e:
+            print(f'❌ Bedrock analysis failed: {e}')
+            sys.exit(1)
+
+        # ── Step 4: Handle transient errors ──
+        if fix_plan.get('transient'):
+            print('\n⚡ Transient error detected. Re-triggering pipeline...')
+            codepipeline.start_pipeline_execution(name=pipeline_name)
+            ssm.put_parameter(Name=attempt_key, Value='0', Type='String', Overwrite=True)
+            print('✅ Pipeline re-triggered. Transient error should resolve on retry.')
+            sys.exit(0)
+
+        if fix_plan.get('unknown'):
+            print(f'\n❓ Could not determine fix: {fix_plan.get("diagnosis")}')
+            print('Manual intervention required.')
+            sys.exit(1)
+
+        # ── Step 5: Apply fixes via GitHub API ──
+        fixes = fix_plan.get('fixes', [])
+        if not fixes:
+            print('\n⚠️  No fixes suggested. Build may require manual intervention.')
+            sys.exit(1)
+
+        if not gh_token:
+            print('\n⚠️  Cannot apply fixes: no GitHub token available.')
+            print('Suggested fixes:')
+            for fix in fixes:
+                print(f'  File: {fix["file"]}')
+                print(f'  Description: {fix["description"]}')
+                print(f'  Search: {fix["search"][:100]}...')
+                print(f'  Replace: {fix["replace"][:100]}...')
+            sys.exit(1)
+
+        print(f'\n🔧 Step 4: Applying {len(fixes)} fix(es) via GitHub API...')
+
+        applied_fixes = []
+        for fix in fixes:
+            filepath = fix['file']
+            try:
+                file_obj = repo.get_contents(filepath, ref=branch)
+                current_content = file_obj.decoded_content.decode('utf-8')
+
+                if fix['search'] not in current_content:
+                    print(f'  ⚠️  Search string not found in {filepath}, skipping')
+                    continue
+
+                new_content = current_content.replace(fix['search'], fix['replace'], 1)
+
+                repo.update_file(
+                    path=filepath,
+                    message=f'fix(auto-heal): {fix["description"]}\n\n🤖 Auto-fixed by ServalSheets self-healing pipeline\nAttempt: {current_attempts + 1}/{max_attempts}\nDiagnosis: {fix_plan["diagnosis"]}',
+                    content=new_content,
+                    sha=file_obj.sha,
+                    branch=branch
+                )
+                applied_fixes.append(filepath)
+                print(f'  ✅ Fixed {filepath}: {fix["description"]}')
+
+            except Exception as e:
+                print(f'  ❌ Failed to fix {filepath}: {e}')
+
+        if not applied_fixes:
+            print('\n❌ No fixes could be applied.')
+            sys.exit(1)
+
+        # ── Step 6: Re-trigger pipeline ──
+        print(f'\n🚀 Step 5: Re-triggering pipeline after fixing {len(applied_fixes)} file(s)...')
+        codepipeline.start_pipeline_execution(name=pipeline_name)
+
+        # Save heal report
+        report = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'attempt': current_attempts + 1,
+            'diagnosis': fix_plan.get('diagnosis'),
+            'fixes_applied': applied_fixes,
+            'failed_phase': phase_info.get('phaseType'),
+            'build_id': failed_build['id']
+        }
+
+        with open('heal-report.json', 'w') as f:
+            json.dump(report, f, indent=2)
+
+        print(f'\n✅ Self-healing complete!')
+        print(f'   Fixed files: {", ".join(applied_fixes)}')
+        print(f'   Pipeline re-triggered automatically.')
+        print(f'   Diagnosis: {fix_plan["diagnosis"]}')
+
+        HEAL_SCRIPT
+
+artifacts:
+  files:
+    - heal-report.json
+  discard-paths: yes
