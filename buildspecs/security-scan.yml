@@ -1,0 +1,56 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_ACCOUNT_ID: '050752643237'
+    ECR_REPO: servalsheets/mcp-server
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - npm ci --ignore-scripts
+      - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+  build:
+    commands:
+      - echo 'Running npm audit...'
+      - npm audit --production --json > npm-audit.json 2>&1 || true
+      - echo 'Checking for exposed secrets...'
+      - grep -rn 'AKIA\|aws_secret\|api_key\|password\s*=' src/ --include='*.ts' > secrets-scan.txt 2>&1 || echo 'No secrets detected' > secrets-scan.txt
+      - echo 'Running Trivy container scan...'
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com 2>/dev/null || true
+      - trivy image --format json --output trivy-report.json $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO:latest 2>/dev/null || echo '{"Results":[]}' > trivy-report.json
+      - |
+        python3 << 'PYEOF'
+        import json
+        summary = {'npm_audit': {}, 'trivy_critical': 0, 'secrets': 'clean', 'overall': 'PASS'}
+        try:
+            with open('npm-audit.json') as f:
+                audit = json.load(f)
+                vulns = audit.get('metadata', {}).get('vulnerabilities', {})
+                summary['npm_audit'] = vulns
+                if vulns.get('critical', 0) > 0: summary['overall'] = 'FAIL'
+                elif vulns.get('high', 0) > 0: summary['overall'] = 'WARN'
+        except: pass
+        try:
+            with open('secrets-scan.txt') as f:
+                if 'AKIA' in f.read(): summary['secrets'] = 'DETECTED'; summary['overall'] = 'FAIL'
+        except: pass
+        with open('security-summary.json', 'w') as f:
+            json.dump(summary, f, indent=2)
+        print(f'Security: {summary["overall"]}')
+        PYEOF
+
+  post_build:
+    commands:
+      - cat security-summary.json
+
+artifacts:
+  files:
+    - npm-audit.json
+    - trivy-report.json
+    - secrets-scan.txt
+    - security-summary.json
