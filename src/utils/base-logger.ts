@@ -8,6 +8,9 @@
  * - base-logger.ts (no request context) ← lowest level
  * - request-context.ts (imports base-logger)
  * - logger.ts (imports base-logger, lazy-loads request-context)
+ *
+ * CloudWatch transport is lazily attached after construction to keep
+ * the import graph clean and avoid blocking startup on SDK loading.
  */
 
 import * as winston from 'winston';
@@ -59,3 +62,24 @@ export const baseLogger = winston.createLogger({
   ],
   defaultMeta: getServiceContextFlat(),
 });
+
+/**
+ * Lazily attach CloudWatch transport if enabled.
+ * Uses dynamic import to avoid blocking startup and keep the SDK optional.
+ * Runs asynchronously — logs before initialization completes still go to Console.
+ */
+(async () => {
+  try {
+    const { createCloudWatchTransport } = await import('./cloudwatch-transport.js');
+    const cwTransport = createCloudWatchTransport();
+    if (cwTransport) {
+      baseLogger.add(cwTransport);
+      baseLogger.info('CloudWatch Logs transport attached', {
+        component: 'base-logger',
+        logGroup: process.env['CLOUDWATCH_LOG_GROUP'] || '/servalsheets/mcp-server',
+      });
+    }
+  } catch {
+    // CloudWatch transport is optional — silently skip if unavailable
+  }
+})();
