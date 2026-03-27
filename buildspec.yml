@@ -5,6 +5,7 @@ env:
     AWS_DEFAULT_REGION: us-east-1
     AWS_ACCOUNT_ID: '050752643237'
     ECR_REPO: servalsheets/mcp-server
+    NODE_OPTIONS: '--max-old-space-size=6144'
 
 phases:
   install:
