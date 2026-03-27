@@ -15,3 +15,6 @@ export * from './tenant-isolation.js';
 
 // RBAC middleware
 export * from './rbac-middleware.js';
+
+// Cognito JWT authentication middleware
+export * from './cognito-auth.js';
