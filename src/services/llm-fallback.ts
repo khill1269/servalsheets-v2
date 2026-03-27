@@ -6,14 +6,19 @@
  * to work even when Claude Desktop doesn't support MCP sampling.
  *
  * Supported providers:
- * - Anthropic (Claude)
- * - OpenAI (GPT-4)
- * - Google (Gemini)
+ * - Anthropic (Claude) - Direct API
+ * - OpenAI (GPT-4) - Direct API
+ * - Google (Gemini) - Direct API
+ * - AWS Bedrock (Claude on Bedrock) - Via AWS SDK with guardrails + inference profiles
  *
  * Configuration via environment variables:
- * - LLM_PROVIDER: 'anthropic' | 'openai' | 'google' (default: 'anthropic')
+ * - LLM_PROVIDER: 'anthropic' | 'openai' | 'google' | 'bedrock' (default: 'anthropic')
  * - LLM_API_KEY or ANTHROPIC_API_KEY or OPENAI_API_KEY or GOOGLE_API_KEY
  * - LLM_MODEL: Model name (default: claude-sonnet-4-20250514)
+ * - BEDROCK_REGION: AWS region for Bedrock (default: us-east-1)
+ * - BEDROCK_INFERENCE_PROFILE_ARN: Application inference profile ARN
+ * - BEDROCK_GUARDRAIL_ID: Guardrail identifier
+ * - BEDROCK_GUARDRAIL_VERSION: Guardrail version (default: '2')
  *
  * @module services/llm-fallback
  */
@@ -27,7 +32,7 @@ import { recordRequestLlmProvenance } from '../utils/request-context.js';
 // Types
 // ============================================================================
 
-export type LLMProvider = 'anthropic' | 'openai' | 'google';
+export type LLMProvider = 'anthropic' | 'openai' | 'google' | 'bedrock';
 
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system';
@@ -59,16 +64,52 @@ export interface LLMFallbackConfig {
   baseUrl?: string;
 }
 
+/**
+ * Extended config for Bedrock provider (no API key needed — uses IAM)
+ */
+export interface BedrockConfig {
+  provider: 'bedrock';
+  region: string;
+  model: string;
+  inferenceProfileArn?: string;
+  guardrailId?: string;
+  guardrailVersion?: string;
+}
+
 // ============================================================================
 // Configuration
 // ============================================================================
 
 /**
+ * Get Bedrock-specific configuration from environment
+ */
+function getBedrockConfig(): BedrockConfig {
+  return {
+    provider: 'bedrock',
+    region: process.env['BEDROCK_REGION'] || process.env['AWS_REGION'] || 'us-east-1',
+    model:
+      process.env['LLM_MODEL'] ||
+      process.env['BEDROCK_MODEL'] ||
+      'us.anthropic.claude-sonnet-4-6',
+    inferenceProfileArn:
+      process.env['BEDROCK_INFERENCE_PROFILE_ARN'] ||
+      'arn:aws:bedrock:us-east-1:050752643237:application-inference-profile/4bcokecm5af8',
+    guardrailId: process.env['BEDROCK_GUARDRAIL_ID'] || 'rur8hed14y0b',
+    guardrailVersion: process.env['BEDROCK_GUARDRAIL_VERSION'] || '2',
+  };
+}
+
+/**
  * Get LLM fallback configuration from environment
  */
-export function getLLMFallbackConfig(): LLMFallbackConfig | null {
+export function getLLMFallbackConfig(): LLMFallbackConfig | BedrockConfig | null {
   // Check for explicit LLM config first
   const provider = (process.env['LLM_PROVIDER'] as LLMProvider) || 'anthropic';
+
+  // Bedrock uses IAM credentials, not API keys
+  if (provider === 'bedrock') {
+    return getBedrockConfig();
+  }
 
   // Try to find API key in order of precedence
   const apiKey =
@@ -82,7 +123,7 @@ export function getLLMFallbackConfig(): LLMFallbackConfig | null {
   }
 
   // Default models per provider
-  const defaultModels: Record<LLMProvider, string> = {
+  const defaultModels: Record<Exclude<LLMProvider, 'bedrock'>, string> = {
     anthropic: 'claude-sonnet-4-20250514',
     openai: 'gpt-4o',
     google: 'gemini-2.0-flash',
@@ -91,7 +132,7 @@ export function getLLMFallbackConfig(): LLMFallbackConfig | null {
   const model = process.env['LLM_MODEL'] || defaultModels[provider];
 
   // Base URLs
-  const baseUrls: Record<LLMProvider, string> = {
+  const baseUrls: Record<Exclude<LLMProvider, 'bedrock'>, string> = {
     anthropic: 'https://api.anthropic.com',
     openai: 'https://api.openai.com',
     google: 'https://generativelanguage.googleapis.com',
@@ -301,6 +342,193 @@ async function callGoogle(
   };
 }
 
+/**
+ * Call AWS Bedrock via @aws-sdk/client-bedrock-runtime
+ *
+ * Uses Bedrock's Converse API for model-agnostic invocation with:
+ * - Application inference profile for routing/cost tracking
+ * - Guardrails for content safety enforcement
+ * - IAM-based authentication (no API key required)
+ *
+ * SDK is dynamically imported to keep it optional — only loaded when
+ * LLM_PROVIDER=bedrock is configured.
+ */
+async function callBedrock(
+  config: BedrockConfig,
+  options: LLMRequestOptions
+): Promise<LLMResponse> {
+  // Dynamic import — @aws-sdk/client-bedrock-runtime is optional
+  let BedrockRuntimeClient: typeof import('@aws-sdk/client-bedrock-runtime').BedrockRuntimeClient;
+  let ConverseCommand: typeof import('@aws-sdk/client-bedrock-runtime').ConverseCommand;
+
+  try {
+    const sdk = await import('@aws-sdk/client-bedrock-runtime');
+    BedrockRuntimeClient = sdk.BedrockRuntimeClient;
+    ConverseCommand = sdk.ConverseCommand;
+  } catch {
+    throw new ConfigError(
+      'AWS Bedrock SDK not installed. Run: npm install @aws-sdk/client-bedrock-runtime',
+      'BEDROCK_SDK'
+    );
+  }
+
+  const client = new BedrockRuntimeClient({ region: config.region });
+
+  // Build Converse API messages — system prompt goes in the system param
+  const converseMessages = options.messages
+    .filter((m) => m.role !== 'system')
+    .map((m) => ({
+      role: m.role as 'user' | 'assistant',
+      content: [{ text: m.content }],
+    }));
+
+  // Collect any system messages and merge with explicit systemPrompt
+  const inlineSystemMessages = options.messages
+    .filter((m) => m.role === 'system')
+    .map((m) => m.content);
+
+  const systemParts: Array<{ text: string }> = [];
+  if (options.systemPrompt) {
+    systemParts.push({ text: options.systemPrompt });
+  }
+  for (const sysMsg of inlineSystemMessages) {
+    systemParts.push({ text: sysMsg });
+  }
+
+  // Use inference profile ARN as modelId if available, otherwise fall back to model name
+  const modelId = config.inferenceProfileArn || config.model;
+
+  // Build the Converse command input
+  const commandInput: Record<string, unknown> = {
+    modelId,
+    messages: converseMessages,
+    inferenceConfig: {
+      maxTokens: options.maxTokens || 4096,
+      temperature: options.temperature,
+    },
+  };
+
+  if (systemParts.length > 0) {
+    commandInput['system'] = systemParts;
+  }
+
+  // Attach guardrail configuration if available
+  if (config.guardrailId) {
+    commandInput['guardrailConfig'] = {
+      guardrailIdentifier: config.guardrailId,
+      guardrailVersion: config.guardrailVersion || 'DRAFT',
+    };
+  }
+
+  logger.debug('Calling Bedrock Converse API', {
+    component: 'llm-fallback',
+    provider: 'bedrock',
+    modelId,
+    region: config.region,
+    guardrailId: config.guardrailId,
+    guardrailVersion: config.guardrailVersion,
+  });
+
+  try {
+    const command = new ConverseCommand(commandInput as ConstructorParameters<typeof ConverseCommand>[0]);
+    const response = await client.send(command);
+
+    // Extract text from Converse response
+    const outputContent = response.output?.message?.content || [];
+    const text = outputContent
+      .filter((block: { text?: string }) => block.text !== undefined)
+      .map((block: { text?: string }) => block.text!)
+      .join('\n');
+
+    // Extract usage metrics
+    const usage = response.usage
+      ? {
+          inputTokens: response.usage.inputTokens || 0,
+          outputTokens: response.usage.outputTokens || 0,
+        }
+      : undefined;
+
+    // Check guardrail action — warn if content was filtered
+    if (response.stopReason === 'guardrail_intervened') {
+      logger.warn('Bedrock guardrail intervened on response', {
+        component: 'llm-fallback',
+        provider: 'bedrock',
+        guardrailId: config.guardrailId,
+      });
+    }
+
+    return {
+      content: text,
+      model: config.model,
+      mode: 'fallback',
+      provider: 'bedrock',
+      usage,
+    };
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errName = error instanceof Error ? error.name : 'UnknownError';
+
+    logger.error('Bedrock Converse API request failed', {
+      component: 'llm-fallback',
+      provider: 'bedrock',
+      error: errMsg,
+      errorName: errName,
+      modelId,
+      region: config.region,
+    });
+
+    // Map specific Bedrock errors to appropriate ServalSheets errors
+    if (errName === 'ThrottlingException' || errName === 'ServiceQuotaExceededException') {
+      throw new ServiceError(
+        'Bedrock API rate limit exceeded. Please retry after a brief wait.',
+        'QUOTA_EXCEEDED',
+        'Bedrock',
+        true,
+        { region: config.region, modelId }
+      );
+    }
+
+    if (errName === 'AccessDeniedException') {
+      throw new ServiceError(
+        'Bedrock access denied. Verify IAM role has bedrock:InvokeModel permission.',
+        'AUTH_ERROR',
+        'Bedrock',
+        false,
+        { region: config.region, modelId }
+      );
+    }
+
+    if (errName === 'ModelNotReadyException' || errName === 'ModelTimeoutException') {
+      throw new ServiceError(
+        'Bedrock model temporarily unavailable. Please try again.',
+        'UNAVAILABLE',
+        'Bedrock',
+        true,
+        { region: config.region, modelId }
+      );
+    }
+
+    if (errName === 'ValidationException') {
+      throw new ServiceError(
+        `Bedrock request validation failed: ${errMsg}`,
+        'VALIDATION_ERROR',
+        'Bedrock',
+        false,
+        { region: config.region, modelId }
+      );
+    }
+
+    // Generic fallback
+    throw new ServiceError(
+      `Bedrock AI service error: ${errMsg}`,
+      'UNAVAILABLE',
+      'Bedrock',
+      true,
+      { region: config.region, modelId, errorName: errName }
+    );
+  }
+}
+
 // ============================================================================
 // Main API
 // ============================================================================
@@ -320,7 +548,7 @@ export async function createLLMMessage(options: LLMRequestOptions): Promise<LLMR
 
   if (!config) {
     throw new ConfigError(
-      'LLM fallback not configured. Set LLM_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY environment variable.',
+      'LLM fallback not configured. Set LLM_PROVIDER=bedrock (uses IAM), or set LLM_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY environment variable.',
       'LLM_API_KEY'
     );
   }
@@ -334,13 +562,16 @@ export async function createLLMMessage(options: LLMRequestOptions): Promise<LLMR
   let response: LLMResponse;
   switch (config.provider) {
     case 'anthropic':
-      response = await callAnthropic(config, options);
+      response = await callAnthropic(config as LLMFallbackConfig, options);
       break;
     case 'openai':
-      response = await callOpenAI(config, options);
+      response = await callOpenAI(config as LLMFallbackConfig, options);
       break;
     case 'google':
-      response = await callGoogle(config, options);
+      response = await callGoogle(config as LLMFallbackConfig, options);
+      break;
+    case 'bedrock':
+      response = await callBedrock(config as BedrockConfig, options);
       break;
     default:
       throw new ConfigError(
