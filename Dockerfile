@@ -3,7 +3,7 @@
 # Supports ARM64 (Graviton) for AgentCore deployment
 
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -32,7 +32,7 @@ RUN npm install --no-save \
   2>/dev/null || true
 
 # Stage 2: Runtime
-FROM node:20-alpine
+FROM node:25-alpine
 
 WORKDIR /app
 
