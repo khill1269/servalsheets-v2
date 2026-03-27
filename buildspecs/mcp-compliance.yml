@@ -2,12 +2,17 @@ version: 0.2
 
 # MCP 2025-11-25 Protocol Compliance Validation
 
+env:
+  variables:
+    NODE_OPTIONS: '--max-old-space-size=6144'
+
 phases:
   install:
     runtime-versions:
       nodejs: 20
     commands:
       - npm ci
+      - npm install --no-save @aws-sdk/client-bedrock-runtime @aws-sdk/client-cloudwatch-logs @aws-sdk/client-secrets-manager
 
   build:
     commands:
