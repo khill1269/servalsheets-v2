@@ -1,9 +1,10 @@
 # ServalSheets Production Dockerfile
 # Multi-stage build for optimal image size (~50MB final)
 # Supports ARM64 (Graviton) for AgentCore deployment
+# Uses ECR Public Gallery to avoid Docker Hub rate limits in CI/CD
 
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM public.ecr.aws/docker/library/node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -17,14 +18,20 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Install AWS SDK optional dependencies for TypeScript compilation
+RUN npm install --no-save \
+  @aws-sdk/client-bedrock-runtime \
+  @aws-sdk/client-secrets-manager \
+  @aws-sdk/client-cloudwatch-logs \
+  2>/dev/null || true
+
 # Build TypeScript
 RUN npm run build
 
 # Prune devDependencies
 RUN npm prune --production
 
-# Install AWS SDK optional dependencies for production
-# These are dynamically imported at runtime when configured
+# Re-install AWS SDK optional dependencies for production runtime
 RUN npm install --no-save \
   @aws-sdk/client-bedrock-runtime \
   @aws-sdk/client-secrets-manager \
@@ -32,7 +39,7 @@ RUN npm install --no-save \
   2>/dev/null || true
 
 # Stage 2: Runtime
-FROM node:20-alpine
+FROM public.ecr.aws/docker/library/node:20-alpine
 
 WORKDIR /app
 
