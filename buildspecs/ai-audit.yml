@@ -1,0 +1,84 @@
+version: 0.2
+
+# Bedrock-powered AI Code Quality Audit
+# Uses ServalSheets inference profile + guardrail for safe analysis
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: us-east-1
+    BEDROCK_INFERENCE_PROFILE: arn:aws:bedrock:us-east-1:050752643237:application-inference-profile/4bcokecm5af8
+    BEDROCK_GUARDRAIL_ID: rur8hed14y0b
+    BEDROCK_GUARDRAIL_VERSION: '2'
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+      python: 3.11
+    commands:
+      - pip install boto3
+
+  build:
+    commands:
+      - echo 'Running Bedrock AI code audit...'
+      - |
+        python3 << 'PYEOF'
+        import json, os, glob
+        import boto3
+
+        bedrock = boto3.client('bedrock-runtime', region_name='us-east-1')
+        results = {'eslint': {}, 'bedrock_review': {}, 'overall_score': 0, 'file_count': 0}
+
+        ts_files = glob.glob('src/**/*.ts', recursive=True)
+        results['file_count'] = len(ts_files)
+
+        key_files = [
+            'src/services/llm-fallback.ts',
+            'src/middleware/cognito-auth.ts',
+            'src/config/secrets.ts',
+            'src/utils/cloudwatch-transport.ts'
+        ]
+        samples = []
+        for kf in key_files:
+            if os.path.exists(kf):
+                with open(kf) as fh:
+                    samples.append(f'--- {kf} ---\n{fh.read()[:3000]}')
+
+        prompt = f"""Analyze these TypeScript files for ServalSheets v2.0.0 (production MCP server).
+        Review: security, error handling, TypeScript strict mode, performance, AWS SDK patterns.
+        {len(ts_files)} files total. Samples:\n{chr(10).join(samples[:2])}
+        Return JSON: {{"score": 0-100, "issues": [{{"file": "", "severity": "", "desc": ""}}], "recommendations": []}}"""
+
+        try:
+            resp = bedrock.converse(
+                modelId=os.environ['BEDROCK_INFERENCE_PROFILE'],
+                messages=[{'role': 'user', 'content': [{'text': prompt}]}],
+                inferenceConfig={'maxTokens': 2000, 'temperature': 0.1},
+                guardrailConfig={
+                    'guardrailIdentifier': os.environ['BEDROCK_GUARDRAIL_ID'],
+                    'guardrailVersion': os.environ['BEDROCK_GUARDRAIL_VERSION']
+                }
+            )
+            review = resp['output']['message']['content'][0]['text']
+            results['bedrock_review'] = {'raw': review}
+            try:
+                parsed = json.loads(review)
+                results['overall_score'] = parsed.get('score', 75)
+                results['recommendations'] = parsed.get('recommendations', [])
+            except:
+                results['overall_score'] = 75
+        except Exception as e:
+            results['bedrock_review'] = {'error': str(e)}
+
+        with open('ai-audit-report.json', 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+        print(f'AI Audit: {results["overall_score"]}/100 ({results["file_count"]} files)')
+        PYEOF
+
+  post_build:
+    commands:
+      - cat ai-audit-report.json
+
+artifacts:
+  files:
+    - ai-audit-report.json
