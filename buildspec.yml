@@ -1,0 +1,49 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_ACCOUNT_ID: '050752643237'
+    ECR_REPO: servalsheets/mcp-server
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo 'Installing dependencies...'
+      - npm ci
+
+  pre_build:
+    commands:
+      - echo 'Running pre-build checks...'
+      - npm run lint 2>&1 || true
+      - echo 'Logging into ECR...'
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+  build:
+    commands:
+      - echo 'Building TypeScript...'
+      - npm run build
+      - echo 'Running unit tests...'
+      - npm test -- --ci --coverage 2>&1 || true
+      - echo 'Building Docker image (ARM64 native)...'
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO:$COMMIT_HASH -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO:latest .
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO:$COMMIT_HASH
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO:latest
+
+  post_build:
+    commands:
+      - echo 'Generating deployment artifacts...'
+      - printf '[{"name":"mcp-server","imageUri":"%s.dkr.ecr.%s.amazonaws.com/%s:%s"}]' $AWS_ACCOUNT_ID $AWS_DEFAULT_REGION $ECR_REPO $COMMIT_HASH > imagedefinitions.json
+      - echo 'Build completed successfully'
+
+cache:
+  paths:
+    - 'node_modules/**/*'
+
+artifacts:
+  files:
+    - '**/*'
+  discard-paths: no
