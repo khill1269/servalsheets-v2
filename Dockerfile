@@ -1,5 +1,6 @@
 # ServalSheets Production Dockerfile
 # Multi-stage build for optimal image size (~50MB final)
+# Supports ARM64 (Graviton) for AgentCore deployment
 
 # Stage 1: Build
 FROM node:20-alpine AS builder
@@ -21,6 +22,14 @@ RUN npm run build
 
 # Prune devDependencies
 RUN npm prune --production
+
+# Install AWS SDK optional dependencies for production
+# These are dynamically imported at runtime when configured
+RUN npm install --no-save \
+  @aws-sdk/client-bedrock-runtime \
+  @aws-sdk/client-secrets-manager \
+  @aws-sdk/client-cloudwatch-logs \
+  2>/dev/null || true
 
 # Stage 2: Runtime
 FROM node:20-alpine
@@ -53,10 +62,16 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:3000/health/live || exit 1
 
-# Default to HTTP transport
+# Default to HTTP transport for AgentCore
 ENV MCP_TRANSPORT=http
 ENV NODE_ENV=production
 ENV PORT=3000
+
+# AWS/AgentCore defaults (overridden by ECS task definition)
+ENV LLM_PROVIDER=bedrock
+ENV CLOUDWATCH_LOGS_ENABLED=true
+ENV CLOUDWATCH_LOG_GROUP=/servalsheets/mcp-server
+ENV AWS_REGION=us-east-1
 
 # Start server
 CMD ["node", "dist/http-server.js"]
