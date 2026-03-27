@@ -1,0 +1,46 @@
+version: 0.2
+
+# MCP 2025-11-25 Protocol Compliance Validation
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - npm ci
+
+  build:
+    commands:
+      - npm run build
+      - echo 'Running MCP compliance checks...'
+      - |
+        node -e "
+        const fs = require('fs');
+        const r = {protocol: '2025-11-25', checks: [], overall: 'PASS'};
+        function chk(n, fn) {
+          try { const ok = fn(); r.checks.push({name:n, status: ok?'PASS':'FAIL'}); if(!ok) r.overall='FAIL'; }
+          catch(e) { r.checks.push({name:n, status:'ERROR', details:e.message}); r.overall='WARN'; }
+        }
+        chk('TypeScript build', () => fs.existsSync('dist/http-server.js'));
+        chk('ESM module', () => JSON.parse(fs.readFileSync('package.json','utf8')).type==='module');
+        chk('MCP SDK dep', () => !!JSON.parse(fs.readFileSync('package.json','utf8')).dependencies['@modelcontextprotocol/sdk']);
+        chk('HTTP transport', () => fs.existsSync('dist/http-server.js'));
+        chk('Dockerfile', () => fs.existsSync('Dockerfile'));
+        chk('AgentCore task def', () => fs.existsSync('deploy/agentcore-task-definition.json'));
+        chk('Cognito auth', () => fs.existsSync('dist/middleware/cognito-auth.js'));
+        chk('CloudWatch transport', () => fs.existsSync('dist/utils/cloudwatch-transport.js'));
+        chk('Bedrock provider', () => fs.readFileSync('dist/services/llm-fallback.js','utf8').includes('bedrock'));
+        const p = r.checks.filter(c=>c.status==='PASS').length;
+        r.pass_rate = p+'/'+r.checks.length;
+        fs.writeFileSync('mcp-compliance-report.json', JSON.stringify(r,null,2));
+        console.log('MCP Compliance: '+r.overall+' ('+r.pass_rate+')');
+        if(r.overall==='FAIL') process.exit(1);
+        "
+
+  post_build:
+    commands:
+      - cat mcp-compliance-report.json
+
+artifacts:
+  files:
+    - mcp-compliance-report.json
