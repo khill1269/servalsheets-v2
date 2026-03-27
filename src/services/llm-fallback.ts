@@ -430,7 +430,9 @@ async function callBedrock(
   });
 
   try {
-    const command = new ConverseCommand(commandInput as ConstructorParameters<typeof ConverseCommand>[0]);
+    // Double-cast through unknown to satisfy TypeScript strict mode —
+    // commandInput is dynamically constructed and matches ConverseCommandInput at runtime
+    const command = new ConverseCommand(commandInput as unknown as ConstructorParameters<typeof ConverseCommand>[0]);
     const response = await client.send(command);
 
     // Extract text from Converse response
