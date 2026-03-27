@@ -1,0 +1,74 @@
+{
+  "family": "servalsheets-mcp-server",
+  "taskRoleArn": "arn:aws:iam::050752643237:role/ServalSheets-AgentCore-ExecutionRole",
+  "executionRoleArn": "arn:aws:iam::050752643237:role/ServalSheets-AgentCore-ExecutionRole",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "mcp-server",
+      "image": "050752643237.dkr.ecr.us-east-1.amazonaws.com/servalsheets/mcp-server:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "MCP_TRANSPORT", "value": "http" },
+        { "name": "PORT", "value": "3000" },
+        { "name": "LLM_PROVIDER", "value": "bedrock" },
+        { "name": "BEDROCK_REGION", "value": "us-east-1" },
+        { "name": "BEDROCK_INFERENCE_PROFILE_ARN", "value": "arn:aws:bedrock:us-east-1:050752643237:application-inference-profile/4bcokecm5af8" },
+        { "name": "BEDROCK_GUARDRAIL_ID", "value": "rur8hed14y0b" },
+        { "name": "BEDROCK_GUARDRAIL_VERSION", "value": "2" },
+        { "name": "CLOUDWATCH_LOGS_ENABLED", "value": "true" },
+        { "name": "CLOUDWATCH_LOG_GROUP", "value": "/servalsheets/mcp-server" },
+        { "name": "CLOUDWATCH_LOGS_REGION", "value": "us-east-1" },
+        { "name": "AWS_SECRETS_REGION", "value": "us-east-1" },
+        { "name": "AWS_SECRETS_PREFIX", "value": "servalsheets/" },
+        { "name": "COGNITO_USER_POOL_ID", "value": "us-east-1_d6Q1t6bUi" },
+        { "name": "COGNITO_CLIENT_ID", "value": "5ro2o67qejkbgd6857ee521r93" },
+        { "name": "COGNITO_REGION", "value": "us-east-1" },
+        { "name": "LOG_LEVEL", "value": "info" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/servalsheets/mcp-server",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000/health/live || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 15
+      },
+      "ulimits": [
+        {
+          "name": "nofile",
+          "softLimit": 65536,
+          "hardLimit": 65536
+        }
+      ]
+    }
+  ],
+  "tags": [
+    { "key": "Project", "value": "ServalSheets" },
+    { "key": "Environment", "value": "production" },
+    { "key": "ManagedBy", "value": "agentcore" }
+  ]
+}
