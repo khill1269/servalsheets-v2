@@ -55,6 +55,11 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/server.json ./
 
+# Copy workspace packages (npm workspaces use symlinks in node_modules
+# that point to ../../packages/serval-core, so the package must exist)
+COPY --from=builder /app/packages/serval-core/dist ./packages/serval-core/dist
+COPY --from=builder /app/packages/serval-core/package.json ./packages/serval-core/
+
 # Create non-root user
 RUN addgroup -g 1001 -S servalsheets && \
     adduser -S servalsheets -u 1001
