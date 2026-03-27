@@ -8,6 +8,9 @@ FROM public.ecr.aws/docker/library/node:20-alpine AS builder
 
 WORKDIR /app
 
+# Increase Node.js heap for TypeScript compilation of large project
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # Copy package files
 COPY package*.json ./
 COPY packages/serval-core/package*.json ./packages/serval-core/
