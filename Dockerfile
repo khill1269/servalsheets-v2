@@ -14,6 +14,10 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Copy package files
 COPY package*.json ./
 COPY packages/serval-core/package*.json ./packages/serval-core/
+COPY packages/mcp-client/package*.json ./packages/mcp-client/
+COPY packages/mcp-http/package*.json ./packages/mcp-http/
+COPY packages/mcp-runtime/package*.json ./packages/mcp-runtime/
+COPY packages/mcp-stdio/package*.json ./packages/mcp-stdio/
 
 # Install dependencies (including devDependencies for build)
 RUN npm ci
@@ -55,10 +59,18 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/server.json ./
 
-# Copy workspace packages (npm workspaces use symlinks in node_modules
-# that point to ../../packages/serval-core, so the package must exist)
-COPY --from=builder /app/packages/serval-core/dist ./packages/serval-core/dist
-COPY --from=builder /app/packages/serval-core/package.json ./packages/serval-core/
+# Copy ALL workspace packages (need package.json + dist for Node.js resolution)
+COPY --from=builder /app/packages ./packages
+
+# Recreate workspace symlinks (Docker multi-stage COPY does not preserve them)
+# npm workspaces create symlinks like node_modules/@serval/core -> ../../packages/serval-core
+# Without these, Node.js cannot resolve @serval/* imports at runtime
+RUN mkdir -p node_modules/@serval && \
+    ln -sf ../../packages/serval-core node_modules/@serval/core && \
+    ln -sf ../../packages/mcp-http node_modules/@serval/mcp-http && \
+    ln -sf ../../packages/mcp-client node_modules/@serval/mcp-client && \
+    ln -sf ../../packages/mcp-runtime node_modules/@serval/mcp-runtime && \
+    ln -sf ../../packages/mcp-stdio node_modules/@serval/mcp-stdio
 
 # Create non-root user
 RUN addgroup -g 1001 -S servalsheets && \
