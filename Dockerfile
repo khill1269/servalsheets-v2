@@ -4,7 +4,7 @@
 # Uses ECR Public Gallery to avoid Docker Hub rate limits in CI/CD
 
 # Stage 1: Build
-FROM public.ecr.aws/docker/library/node:20-alpine AS builder
+FROM public.ecr.aws/docker/library/node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -42,7 +42,7 @@ RUN npm install --no-save \
   2>/dev/null || true
 
 # Stage 2: Runtime
-FROM public.ecr.aws/docker/library/node:20-alpine
+FROM public.ecr.aws/docker/library/node:25-alpine
 
 WORKDIR /app
 
