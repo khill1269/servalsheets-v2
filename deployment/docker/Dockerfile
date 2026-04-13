@@ -1,7 +1,7 @@
 # ServalSheets Deployment Dockerfile
 # Used by deploy.sh and CodeBuild pipeline
 
-FROM public.ecr.aws/docker/library/node:20-alpine AS builder
+FROM public.ecr.aws/docker/library/node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Production image
-FROM public.ecr.aws/docker/library/node:20-alpine
+FROM public.ecr.aws/docker/library/node:25-alpine
 
 WORKDIR /app
 
