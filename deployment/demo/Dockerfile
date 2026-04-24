@@ -1,7 +1,7 @@
 # ServalSheets Demo - Cloud Run Deployment
 # Read-only demo instance with rate limiting
 
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:22-alpine AS runner
+FROM node:25-alpine AS runner
 
 WORKDIR /app
 
