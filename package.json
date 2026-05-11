@@ -23,7 +23,7 @@
     "@opentelemetry/auto-instrumentations-node": "^0.71.0",
     "@opentelemetry/exporter-prometheus": "^0.213.0",
     "@opentelemetry/sdk-metrics": "^2.6.0",
-    "@opentelemetry/sdk-node": "^0.213.0",
+    "@opentelemetry/sdk-node": "^0.217.0",
     "@opentelemetry/sdk-trace-node": "^2.6.0",
     "@serval/core": "workspace:*",
     "@types/node-cron": "^3.0.11",
